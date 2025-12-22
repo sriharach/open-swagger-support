@@ -1,0 +1,21 @@
+@import "tailwindcss";
+@plugin '../plugins/hero.ts';
+@source '../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
+
+
+@theme {
+  --color-green-1: #2ca34c;
+  --color-green-2: oklch(72.3% 0.219 149.579);
+  --color-green-3: oklch(52.7% 0.154 150.069)
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+
+body {
+  margin: 0;
+  padding: 0;
+}
