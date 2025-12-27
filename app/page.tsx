@@ -13,6 +13,7 @@ import yaml from "js-yaml";
 import { FormProvider, Controller } from "react-hook-form";
 import MemoSwagger from "@/components/modules/MemoSwagger";
 import "swagger-ui-react/swagger-ui.css";
+import React, { useRef, useState } from "react";
 
 // configs
 import apiQuality from "@/constant/api-quality";
@@ -24,6 +25,7 @@ import PlusIcon from "@/components/icons/PlusIcon";
 import TrashIcon from "@/components/icons/TrashIcon";
 import useSwaggerUI from "@/hooks/useSwaggerUI";
 import NestedProperties from "@/components/modules/NestedComponent/NestedProperties";
+import NestedRequestBody from "@/components/modules/NestedComponent/NestedRequestBody";
 
 export default function Home() {
   const {
@@ -41,17 +43,60 @@ export default function Home() {
     console.log("yamlDump :>> ", yamlDump);
   };
 
+  // Add state for width and dragging
+  const [swaggerWidth, setSwaggerWidth] = useState(600); // initial width
+  const dragging = useRef(false);
+
+  // Mouse event handlers
+  const handleMouseDown = () => {
+    dragging.current = true;
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (dragging.current) {
+      setSwaggerWidth(Math.max(200, e.clientX)); // minimum width 200px
+    }
+  };
+
+  const handleMouseUp = () => {
+    dragging.current = false;
+    document.body.style.cursor = "";
+  };
+
+  React.useEffect(() => {
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
   return (
     <section>
       <FormProvider {...formProvider}>
-        <div className="grid grid-cols-[1fr_560px] lg:grid-cols-[1fr_960px]">
-          <div className="p-4 border-r-1.5 border-green-3 overflow-y-auto h-screen">
+        <div
+          className="grid"
+          style={{ gridTemplateColumns: `${swaggerWidth}px 2px 1fr` }}
+        >
+          <div
+            id="swagger-support"
+            className="p-4 border-r-2 border-green-3 overflow-y-auto h-screen"
+            style={{ width: swaggerWidth }}
+          >
             <h2 className="font-bold text-2xl">Swagger Support</h2>
             <MemoSwagger spec={generateOpenApiSpec as never} />
             {/* <SwaggerUI spec={mockSwagger} /> */}
           </div>
-
-          <div id="api-path" className="flex flex-col space-y-3 p-4 overflow-y-auto h-screen">
+          {/* Draggable divider */}
+          <div
+            className="border-green-3 cursor-col-resize z-10 w-1"
+            onMouseDown={handleMouseDown}
+          />
+          <div
+            id="api-path"
+            className="flex flex-col space-y-3 p-4 overflow-y-auto h-screen"
+          >
             <div className="flex flex-col space-y-3">
               <h2 className="font-bold text-2xl">Api path/name</h2>
               <Divider className="bg-green-1" />
@@ -118,6 +163,7 @@ export default function Home() {
                   variant="light"
                   size="sm"
                   className="max-w-30"
+                  isDisabled={requestBodyFieldArray.fields.length >= 1}
                   onPress={() =>
                     requestBodyFieldArray.append({
                       name: "",
@@ -132,50 +178,53 @@ export default function Home() {
               <Divider className="bg-green-1" />
               {requestBodyFieldArray.fields.map((body, index) => {
                 return (
-                  <div
-                    key={body.id}
-                    className="flex flex-row gap-3 items-center"
-                  >
-                    <Controller
-                      name={`requestBody.${index}.required` as never}
-                      control={formProvider.control}
-                      render={({ field }) => {
-                        return (
-                          <div className="text-center">
-                            <p className="text-sm font-medium">
-                              Required Field
-                            </p>
-                            <Checkbox
-                              onValueChange={(value) => field.onChange(value)}
+                  <div key={body.id} className="flex flex-col gap-3 align-top">
+                    <div className="flex flex-row gap-3 items-center flex-1">
+                      <Controller
+                        name={`requestBody.${index}.required` as never}
+                        control={formProvider.control}
+                        render={({ field }) => {
+                          return (
+                            <div className="text-center">
+                              <p className="text-sm font-medium">
+                                Required Field
+                              </p>
+                              <Checkbox
+                                onValueChange={(value) => field.onChange(value)}
+                              />
+                            </div>
+                          );
+                        }}
+                      />
+                      <Controller
+                        name={`requestBody.${index}.name` as never}
+                        control={formProvider.control}
+                        render={({ field }) => {
+                          return (
+                            <Input
+                              {...field}
+                              label="Name"
+                              variant="bordered"
+                              size="sm"
+                              className="max-w-60"
                             />
-                          </div>
-                        );
-                      }}
-                    />
-                    <Controller
-                      name={`requestBody.${index}.name` as never}
+                          );
+                        }}
+                      />
+                      <Button
+                        isIconOnly
+                        color="danger"
+                        size="sm"
+                        variant="light"
+                        onPress={() => requestBodyFieldArray.remove(index)}
+                      >
+                        <TrashIcon />
+                      </Button>
+                    </div>
+                    <NestedRequestBody
+                      nestIndex={index}
                       control={formProvider.control}
-                      render={({ field }) => {
-                        return (
-                          <Input
-                            {...field}
-                            label="Name"
-                            variant="bordered"
-                            size="sm"
-                            className="max-w-60"
-                          />
-                        );
-                      }}
                     />
-                    <Button
-                      isIconOnly
-                      color="danger"
-                      size="sm"
-                      variant="light"
-                      onPress={() => requestBodyFieldArray.remove(index)}
-                    >
-                      <TrashIcon />
-                    </Button>
                   </div>
                 );
               })}
@@ -469,7 +518,7 @@ export default function Home() {
                   </div>
                 );
               })}
-               <Button onClick={onSubmit}>Generate yaml.</Button>
+              <Button onClick={onSubmit}>Generate yaml.</Button>
             </div>
           </div>
         </div>

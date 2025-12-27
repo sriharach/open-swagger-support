@@ -29,7 +29,7 @@ export type ComponentSupport = {
   format: "array" | "object" | "";
   type: "string" | "number" | "boolean";
   enum?: Array<string | number>;
-  example?: string | number;
+  example?: string | number | boolean;
   properties?: Array<ComponentSupport>;
 };
 

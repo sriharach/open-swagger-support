@@ -9,7 +9,6 @@ import { mapSchemaTypes } from "@/constant/api-type";
 const useSwaggerUI = () => {
   const formProvider = useForm<UseFormOpenApi>({
     defaultValues: {
-      parameters: [],
       responses: [
         {
           code: "200",
@@ -37,6 +36,7 @@ const useSwaggerUI = () => {
   const watchMethod = watch("method");
   const watchApiName = watch("name");
   const watchParameters = watch("parameters");
+  const watchRequestBody = watch("requestBody");
   const watchResponses = watch("responses");
 
   const getValueSchema = getValues("schema");
@@ -115,73 +115,110 @@ const useSwaggerUI = () => {
         }, {}),
     };
 
-    let refDataInitial: Record<string, any> = {};
-    let schemaProperties: Record<string, any> = {};
+    let requestBody: Record<string, any> = {};
+    let properRequestBody: Record<string, any> = {};
+    const requestBodyElement = watchRequestBody[0];
+    if (requestBodyElement) {
+      requestBody = {
+        requestBody: {
+          description: requestBodyElement.description || "",
+          content: {
+            "*/*": {
+              schema: {
+                $ref: `#/components/schemas/${requestBodyElement.name}`,
+              },
+            },
+          },
+          required: requestBodyElement.required || false,
+        },
+      };
 
-    if (getValueSchema.length > 0) {
-      schemaProperties = getValueSchema.map((c_schema) => {
-        const checkResponseCode = watchResponses.some(
-          (x) => x.code === c_schema.code
-        );
-        if (checkResponseCode) {
-          return c_schema.properties
+      properRequestBody = {
+        [requestBodyElement.name]: {
+          type: "object",
+          properties: (requestBodyElement.properties ?? [])
             .map((proper) => {
-              if (proper.format === "object") {
-                return {
-                  [proper.key]: {
-                    type: "object",
-                    properties: (proper.properties ?? [])
-                      .map((compo) => {
-                        return {
-                          [compo.key]: {
-                            type: compo.type,
-                            example: compo.example,
-                          },
-                        };
-                      })
-                      .reduce((acc, response) => {
-                        return { ...acc, ...response };
-                      }, {}),
-                  },
-                };
-              } else {
-                return {
-                  [proper.key]: {
-                    type: "array",
-                    items: {
-                      properties: (proper.properties ?? [])
-                        .map((compo) => {
-                          return {
-                            [compo.key]: {
-                              type: compo.type,
-                              example: compo.example,
-                            },
-                          };
-                        })
-                        .reduce((acc, response) => {
-                          return { ...acc, ...response };
-                        }, {}),
-                    },
-                  },
-                };
-              }
+              return {
+                [proper.key]: {
+                  type: proper.type,
+                  example: proper.example,
+                },
+              };
             })
-            .reduce((acc: any, response) => {
+            .reduce((acc, response) => {
               return { ...acc, ...response };
-            }, {});
-        }
-        return [];
-      });
-    }
-
-    if (schemaProperties[0] && Object.keys(schemaProperties[0]).length > 0) {
-      const initialRefKey = Object.keys(schemaProperties[0])[0];
-      refDataInitial = {
-        [initialRefKey]: {
-          $ref: `#/components/schemas/${initialRefKey}`,
+            }, {}),
         },
       };
     }
+
+    let refDataInitial: Record<string, any> = {};
+    let schemaProperties: Record<string, any> = {};
+    if (getValueSchema.length > 0) {
+      console.log('getValueSchema', getValueSchema)
+      // schemaProperties = getValueSchema.map((c_schema) => {
+      //   const checkResponseCode = watchResponses.some(
+      //     (x) => x.code === c_schema.code
+      //   );
+      //   if (checkResponseCode) {
+      //     return c_schema.properties
+      //       .map((proper) => {
+      //         if (proper.format === "object") {
+      //           return {
+      //             [proper.key]: {
+      //               type: "object",
+      //               properties: (proper.properties ?? [])
+      //                 .map((compo) => {
+      //                   return {
+      //                     [compo.key]: {
+      //                       type: compo.type,
+      //                       example: compo.example,
+      //                     },
+      //                   };
+      //                 })
+      //                 .reduce((acc, response) => {
+      //                   return { ...acc, ...response };
+      //                 }, {}),
+      //             },
+      //           };
+      //         } else {
+      //           return {
+      //             [proper.key]: {
+      //               type: "array",
+      //               items: {
+      //                 properties: (proper.properties ?? [])
+      //                   .map((compo) => {
+      //                     return {
+      //                       [compo.key]: {
+      //                         type: compo.type,
+      //                         example: compo.example,
+      //                       },
+      //                     };
+      //                   })
+      //                   .reduce((acc, response) => {
+      //                     return { ...acc, ...response };
+      //                   }, {}),
+      //               },
+      //             },
+      //           };
+      //         }
+      //       })
+      //       .reduce((acc: any, response) => {
+      //         return { ...acc, ...response };
+      //       }, {});
+      //   }
+      //   return [];
+      // });
+    }
+
+    // if (schemaProperties[0] && Object.keys(schemaProperties[0]).length > 0) {
+    //   const initialRefKey = Object.keys(schemaProperties[0])[0];
+    //   refDataInitial = {
+    //     [initialRefKey]: {
+    //       $ref: `#/components/schemas/${initialRefKey}`,
+    //     },
+    //   };
+    // }
 
     return {
       openapi: "3.0.0",
@@ -203,17 +240,7 @@ const useSwaggerUI = () => {
             summary: "Preview endpoint",
             parameters: parameters,
             responses: responsesCocoon.resultResponse,
-            requestBody: {
-              description: "Update an existent pet in the store",
-              content: {
-                "*/*": {
-                  schema: {
-                    $ref: "#/components/schemas/StatusResponse",
-                  },
-                },
-              },
-              required: true,
-            },
+            ...requestBody,
           },
         },
       },
@@ -230,6 +257,7 @@ const useSwaggerUI = () => {
           },
           //   ...schemaProperties[0],
           ...responsesCocoon.initialResponse,
+          ...properRequestBody,
           StatusResponse: {
             type: "object",
             properties: {
@@ -257,6 +285,7 @@ const useSwaggerUI = () => {
     watchParameters,
     watchResponses,
     getValueSchema,
+    watchRequestBody,
   ]);
 
   return {
