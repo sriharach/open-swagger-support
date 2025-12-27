@@ -1,7 +1,6 @@
 "use client";
 
 // libs
-import { memo, useMemo } from "react";
 import {
   Input,
   Select,
@@ -9,472 +8,100 @@ import {
   Divider,
   Button,
   Checkbox,
-  CheckboxGroup,
 } from "@heroui/react";
-import SwaggerUI from "swagger-ui-react";
 import yaml from "js-yaml";
-import {
-  FormProvider,
-  useForm,
-  Controller,
-  useFieldArray,
-} from "react-hook-form";
+import { FormProvider, Controller } from "react-hook-form";
+import MemoSwagger from "@/components/modules/MemoSwagger";
 import "swagger-ui-react/swagger-ui.css";
+import React, { useRef, useState } from "react";
 
 // configs
 import apiQuality from "@/constant/api-quality";
 import mockSwagger from "@/constant/mock.json";
 
 // types
-import { type UseFormOpenApi } from "@/types/models/useForm";
-import apiTypes, { formatTypes, mapSchemaTypes } from "@/constant/api-type";
+import apiTypes, { formatTypes } from "@/constant/api-type";
 import PlusIcon from "@/components/icons/PlusIcon";
 import TrashIcon from "@/components/icons/TrashIcon";
+import useSwaggerUI from "@/hooks/useSwaggerUI";
+import NestedProperties from "@/components/modules/NestedComponent/NestedProperties";
+import NestedRequestBody from "@/components/modules/NestedComponent/NestedRequestBody";
 
 export default function Home() {
-  const formProvider = useForm<UseFormOpenApi>({
-    defaultValues: {
-      responses: [
-        {
-          code: "200",
-          description: "",
-        },
-      ],
-      schema: [
-        {
-          code: "200",
-          properties: [
-            {
-              key: "",
-              format: "",
-            },
-          ],
-        },
-      ],
-    },
-  });
-  const { control, getValues, watch, formState } = formProvider;
-
-  const parametersFieldArray = useFieldArray({
-    control: control,
-    name: "parameters",
-  });
-
-  const responsesFieldArray = useFieldArray({
-    control: control,
-    name: "responses",
-  });
-
-  const schemaFieldArray = useFieldArray({
-    control: control,
-    name: "schema",
-  });
-
-  const watchApiPath = watch("apiPath");
-  const watchMethod = watch("method");
-  const watchApiName = watch("name");
-  const watchParameters = watch("parameters");
-  const watchResponses = watch("responses");
-
-  const getValueSchema = getValues("schema");
-  const getValuesResponse = getValues("responses");
-
-  const generateOpenApiSpec = useMemo(() => {
-    if (!watchApiPath || !watchApiName || !watchMethod) return undefined;
-
-    const parameters = watchParameters.map((parameter) => {
-      return {
-        name: parameter.name,
-        in: parameter.in,
-        required: parameter.required,
-        schema: mapSchemaTypes(
-          parameter.in as keyof typeof mapSchemaTypes,
-          parameter.format as never
-        ),
-      };
-    });
-
-    const responses = watchResponses
-      .map((response) => {
-        return {
-          [response.code]: {
-            description: response.description,
-            content: {
-              "*/*": {
-                schema: {
-                  $ref: `#/components/schemas/${watchApiName}`,
-                },
-              },
-            },
-          },
-        };
-      })
-      .reduce((acc, response) => {
-        return { ...acc, ...response };
-      }, {});
-
-    let refData: Record<string, any> = {};
-    let schemaProperties: Record<string, any> = {};
-
-    if (getValueSchema.length > 0) {
-      schemaProperties = getValueSchema.map((c_schema) => {
-        const checkResponseCode = watchResponses.some(
-          (x) => x.code === c_schema.code
-        );
-        if (checkResponseCode) {
-          return c_schema.properties
-            .map((proper) => {
-              if (proper.format === "object") {
-                return {
-                  [proper.key]: {
-                    type: "object",
-                    properties: proper.components
-                      .map((compo) => {
-                        return {
-                          [compo.name]: {
-                            type: compo.type,
-                            example: compo.example,
-                          },
-                        };
-                      })
-                      .reduce((acc, response) => {
-                        return { ...acc, ...response };
-                      }, {}),
-                  },
-                };
-              } else {
-                return {
-                  [proper.key]: {
-                    type: "array",
-                    items: {
-                      properties: proper.components
-                        .map((compo) => {
-                          return {
-                            [compo.name]: {
-                              type: compo.type,
-                              example: compo.example,
-                            },
-                          };
-                        })
-                        .reduce((acc, response) => {
-                          return { ...acc, ...response };
-                        }, {}),
-                    },
-                  },
-                };
-              }
-            })
-            .reduce((acc: any, response) => {
-              return { ...acc, ...response };
-            }, {});
-        }
-        return [];
-      });
-    }
-
-    if (schemaProperties[0] && Object.keys(schemaProperties[0]).length > 0) {
-      refData = Object.keys(schemaProperties[0])
-        .map((key) => {
-          return {
-            [key]: {
-              $ref: `#/components/schemas/${key}`,
-            },
-          };
-        })
-        .reduce((acc, response) => {
-          return { ...acc, ...response };
-        }, {});
-    }
-
-    return {
-      openapi: "3.0.0",
-      info: { title: "Swagger Support Spec", description: "", version: "1.0.0" },
-      tags: [
-        {
-          name: watchApiName,
-          description: "",
-        },
-      ],
-      paths: {
-        [watchApiPath]: {
-          [watchMethod]: {
-            tags: [watchApiName],
-            summary: "Preview endpoint",
-            parameters: parameters,
-            responses: responses,
-          },
-        },
-      },
-      components: {
-        schemas: {
-          [watchApiName]: {
-            type: "object",
-            properties: {
-              status: {
-                $ref: "#/components/schemas/StatusResponse",
-              },
-              data: {
-                type: "object",
-                properties: {
-                  ...refData,
-                },
-              },
-            },
-          },
-          ...schemaProperties[0],
-          StatusResponse: {
-            type: "object",
-            properties: {
-              code: {
-                type: "string",
-                example: "10000",
-              },
-              type: {
-                type: "string",
-                example: "info",
-              },
-              message: {
-                type: "string",
-                example: "success",
-              },
-            },
-          },
-        },
-      },
-    };
-  }, [
-    watchApiName,
-    watchMethod,
-    watchApiPath,
-    watchParameters,
-    watchResponses,
-    getValueSchema,
-  ]);
+  const {
+    formProvider,
+    parametersFieldArray,
+    responsesFieldArray,
+    requestBodyFieldArray,
+    schemaFieldArray,
+    getValuesResponse,
+    generateOpenApiSpec,
+  } = useSwaggerUI();
 
   const onSubmit = () => {
     const yamlDump = yaml.dump(generateOpenApiSpec);
     console.log("yamlDump :>> ", yamlDump);
   };
 
-  const MemoSwagger = memo((props: { spec: string }) => {
-    // console.log("props :>> ", props.spec);
-    return SwaggerUI({ spec: props.spec });
-  });
+  // Add state for width and dragging
+  const [swaggerWidth, setSwaggerWidth] = useState(600); // initial width
+  const dragging = useRef(false);
 
-  const NestedComponent = ({
-    nestedPropertyIndex,
-    nestedSchemaIndex,
-  }: {
-    nestedPropertyIndex: number;
-    nestedSchemaIndex: number;
-  }) => {
-    const { fields, remove, append } = useFieldArray({
-      control,
-      name: `schema[${nestedSchemaIndex}].properties[${nestedPropertyIndex}].components` as never,
-    });
-    return (
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-row gap-3 items-center">
-          <strong className="text-lg w-54">Properties Value</strong>
-          <Button
-            isIconOnly
-            variant="light"
-            size="sm"
-            className="max-w-30"
-            onPress={() =>
-              append({
-                value: "",
-              })
-            }
-          >
-            <PlusIcon />
-          </Button>
-        </div>
-        {fields.map((component, componentIndex) => {
-          return (
-            <div
-              key={component.id}
-              className="flex flex-row gap-3 items-center"
-            >
-              <Controller
-                control={control}
-                name={
-                  `schema.${nestedSchemaIndex}.properties.${nestedPropertyIndex}.components.${componentIndex}.name` as never
-                }
-                render={({ field }) => {
-                  return (
-                    <Input
-                      {...field}
-                      label="Name"
-                      variant="bordered"
-                      size="sm"
-                      className="max-w-60"
-                    />
-                  );
-                }}
-              />
-              <Controller
-                control={control}
-                name={
-                  `schema.${nestedSchemaIndex}.properties.${nestedPropertyIndex}.components.${componentIndex}.example` as never
-                }
-                render={({ field }) => {
-                  return (
-                    <Input
-                      {...field}
-                      label="example"
-                      variant="bordered"
-                      size="sm"
-                      className="max-w-60"
-                    />
-                  );
-                }}
-              />
-              <Controller
-                control={control}
-                name={
-                  `schema.${nestedSchemaIndex}.properties.${nestedPropertyIndex}.components.${componentIndex}.type` as never
-                }
-                render={({ field }) => {
-                  return (
-                    <Select
-                      onSelectionChange={(value) =>
-                        field.onChange(value.currentKey)
-                      }
-                      selectedKeys={[field.value]}
-                      label="Type"
-                      className="max-w-32"
-                      variant="underlined"
-                    >
-                      <SelectItem key={"string"}>{"String"}</SelectItem>
-                      <SelectItem key={"number"}>{"Number"}</SelectItem>
-                      <SelectItem key={"boolean"}>{"Boolean"}</SelectItem>
-                    </Select>
-                  );
-                }}
-              />
-              <Button
-                isIconOnly
-                color="danger"
-                size="sm"
-                variant="light"
-                onPress={() => remove(componentIndex)}
-              >
-                <TrashIcon />
-              </Button>
-            </div>
-          );
-        })}
-        {fields.length > 0 && <Divider className="bg-green-1 my-4" />}
-      </div>
-    );
+  // Mouse event handlers
+  const handleMouseDown = () => {
+    dragging.current = true;
   };
 
-  const NestedProperty = ({ nestIndex }: { nestIndex: number }) => {
-    const { fields, remove, append } = useFieldArray({
-      control,
-      name: `schema[${nestIndex}].properties` as never,
-    });
-
-    return (
-      <div className="border-2 border-green-1 min-w-full rounded-md min-h-10 p-2">
-        <div className="flex flex-row gap-3 items-center">
-          <strong className="text-lg w-54">Properties Schema</strong>
-          <Button
-            isIconOnly
-            variant="light"
-            size="sm"
-            className="max-w-30"
-            onPress={() =>
-              append({
-                key: "",
-                format: "",
-              })
-            }
-          >
-            <PlusIcon />
-          </Button>
-        </div>
-        {fields.map((property, propertyIndex) => {
-          return (
-            <div key={property.id} className="flex flex-col gap-3">
-              <div className="flex flex-row gap-3 items-center">
-                <Controller
-                  control={control}
-                  name={
-                    `schema.${nestIndex}.properties.${propertyIndex}.key` as never
-                  }
-                  render={({ field }) => {
-                    return (
-                      <Input
-                        {...field}
-                        label="Key schema"
-                        variant="bordered"
-                        size="sm"
-                        className="max-w-60"
-                      />
-                    );
-                  }}
-                />
-                <Controller
-                  control={control}
-                  name={
-                    `schema.${nestIndex}.properties.${propertyIndex}.format` as never
-                  }
-                  render={({ field }) => {
-                    return (
-                      <Select
-                        onSelectionChange={(value) =>
-                          field.onChange(value.currentKey)
-                        }
-                        selectedKeys={[field.value]}
-                        label="Format"
-                        className="max-w-32"
-                        variant="underlined"
-                      >
-                        <SelectItem key={"object"}>{"Object"}</SelectItem>
-                        <SelectItem key={"array"}>{"Array"}</SelectItem>
-                      </Select>
-                    );
-                  }}
-                />
-                <Button
-                  isIconOnly
-                  color="danger"
-                  size="sm"
-                  variant="light"
-                  onPress={() => remove(propertyIndex)}
-                >
-                  <TrashIcon />
-                </Button>
-              </div>
-              <NestedComponent
-                nestedSchemaIndex={nestIndex}
-                nestedPropertyIndex={propertyIndex}
-              />
-            </div>
-          );
-        })}
-      </div>
-    );
+  const handleMouseMove = (e: MouseEvent) => {
+    if (dragging.current) {
+      setSwaggerWidth(Math.max(200, e.clientX)); // minimum width 200px
+    }
   };
+
+  const handleMouseUp = () => {
+    dragging.current = false;
+    document.body.style.cursor = "";
+  };
+
+  React.useEffect(() => {
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
 
   return (
     <section>
       <FormProvider {...formProvider}>
-        <div className="grid grid-cols-[1fr_560px] lg:grid-cols-[1fr_960px] min-h-screen">
-          <div className="p-4 border-r-1.5 border-green-3">
+        <div
+          className="grid"
+          style={{ gridTemplateColumns: `${swaggerWidth}px 2px 1fr` }}
+        >
+          <div
+            id="swagger-support"
+            className="p-4 border-r-2 border-green-3 overflow-y-auto h-screen"
+            style={{ width: swaggerWidth }}
+          >
             <h2 className="font-bold text-2xl">Swagger Support</h2>
             <MemoSwagger spec={generateOpenApiSpec as never} />
             {/* <SwaggerUI spec={mockSwagger} /> */}
           </div>
-
-          <div id="api-path" className="flex flex-col space-y-3 p-4">
+          {/* Draggable divider */}
+          <div
+            className="border-green-3 cursor-col-resize z-10 w-1"
+            onMouseDown={handleMouseDown}
+          />
+          <div
+            id="api-path"
+            className="flex flex-col space-y-3 p-4 overflow-y-auto h-screen"
+          >
             <div className="flex flex-col space-y-3">
               <h2 className="font-bold text-2xl">Api path/name</h2>
               <Divider className="bg-green-1" />
               <Controller
-                control={control}
+                control={formProvider.control}
                 name="name"
                 render={({ field }) => {
                   return (
@@ -490,7 +117,7 @@ export default function Home() {
 
               <div className="flex justify-between gap-3">
                 <Controller
-                  control={control}
+                  control={formProvider.control}
                   name="method"
                   render={({ field }) => {
                     return (
@@ -511,7 +138,7 @@ export default function Home() {
                   }}
                 />
                 <Controller
-                  control={control}
+                  control={formProvider.control}
                   name="apiPath"
                   render={({ field }) => {
                     return (
@@ -526,9 +153,87 @@ export default function Home() {
                 />
               </div>
             </div>
+
+            {/* Request Body */}
+            <div id="request-body" className="flex flex-col space-y-3">
+              <div className="flex flex-row gap-3 items-center">
+                <h2 className="font-bold text-2xl w-42">Request Body</h2>
+                <Button
+                  isIconOnly
+                  variant="light"
+                  size="sm"
+                  className="max-w-30"
+                  isDisabled={requestBodyFieldArray.fields.length >= 1}
+                  onPress={() =>
+                    requestBodyFieldArray.append({
+                      name: "",
+                      properties: [],
+                      required: false,
+                    })
+                  }
+                >
+                  <PlusIcon />
+                </Button>
+              </div>
+              <Divider className="bg-green-1" />
+              {requestBodyFieldArray.fields.map((body, index) => {
+                return (
+                  <div key={body.id} className="flex flex-col gap-3 align-top">
+                    <div className="flex flex-row gap-3 items-center flex-1">
+                      <Controller
+                        name={`requestBody.${index}.required` as never}
+                        control={formProvider.control}
+                        render={({ field }) => {
+                          return (
+                            <div className="text-center">
+                              <p className="text-sm font-medium">
+                                Required Field
+                              </p>
+                              <Checkbox
+                                onValueChange={(value) => field.onChange(value)}
+                              />
+                            </div>
+                          );
+                        }}
+                      />
+                      <Controller
+                        name={`requestBody.${index}.name` as never}
+                        control={formProvider.control}
+                        render={({ field }) => {
+                          return (
+                            <Input
+                              {...field}
+                              label="Name"
+                              variant="bordered"
+                              size="sm"
+                              className="max-w-60"
+                            />
+                          );
+                        }}
+                      />
+                      <Button
+                        isIconOnly
+                        color="danger"
+                        size="sm"
+                        variant="light"
+                        onPress={() => requestBodyFieldArray.remove(index)}
+                      >
+                        <TrashIcon />
+                      </Button>
+                    </div>
+                    <NestedRequestBody
+                      nestIndex={index}
+                      control={formProvider.control}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Parameter */}
             <div id="parameter" className="flex flex-col space-y-3">
               <div className="flex flex-row gap-3 items-center">
-                <h2 className="font-bold text-2xl w-32">Parameter</h2>
+                <h2 className="font-bold text-2xl w-42">Parameter</h2>
                 <Button
                   isIconOnly
                   variant="light"
@@ -555,7 +260,7 @@ export default function Home() {
                   >
                     <Controller
                       name={`parameters.${index}.required` as never}
-                      control={control}
+                      control={formProvider.control}
                       render={({ field }) => {
                         return (
                           <div className="text-center">
@@ -571,7 +276,7 @@ export default function Home() {
                     />
                     <Controller
                       name={`parameters.${index}.name` as never}
-                      control={control}
+                      control={formProvider.control}
                       render={({ field }) => {
                         return (
                           <Input
@@ -586,7 +291,7 @@ export default function Home() {
                     />
                     <Controller
                       name={`parameters.${index}.in` as never}
-                      control={control}
+                      control={formProvider.control}
                       render={({ field }) => {
                         return (
                           <Select
@@ -607,7 +312,7 @@ export default function Home() {
                     />
                     <Controller
                       name={`parameters.${index}.format` as never}
-                      control={control}
+                      control={formProvider.control}
                       render={({ field }) => {
                         return (
                           <Select
@@ -645,7 +350,7 @@ export default function Home() {
             {/* Response */}
             <div id="response" className="flex flex-col space-y-3">
               <div className="flex flex-row gap-3 items-center">
-                <h2 className="font-bold text-2xl w-32">Responses</h2>
+                <h2 className="font-bold text-2xl w-42">Responses</h2>
                 <Button
                   isIconOnly
                   variant="light"
@@ -655,6 +360,7 @@ export default function Home() {
                     responsesFieldArray.append({
                       code: "",
                       description: "",
+                      name: "",
                     })
                   }
                 >
@@ -670,7 +376,7 @@ export default function Home() {
                     className="flex flex-row gap-3 items-center"
                   >
                     <Controller
-                      control={control}
+                      control={formProvider.control}
                       name={`responses.${index}.code` as never}
                       render={({ field }) => {
                         return (
@@ -685,7 +391,22 @@ export default function Home() {
                       }}
                     />
                     <Controller
-                      control={control}
+                      control={formProvider.control}
+                      name={`responses.${index}.name` as never}
+                      render={({ field }) => {
+                        return (
+                          <Input
+                            {...field}
+                            label="Name"
+                            variant="bordered"
+                            size="sm"
+                            className="max-w-60"
+                          />
+                        );
+                      }}
+                    />
+                    <Controller
+                      control={formProvider.control}
                       name={`responses.${index}.description` as never}
                       render={({ field }) => {
                         return (
@@ -713,19 +434,29 @@ export default function Home() {
               })}
             </div>
 
-            {/* schema */}
+            {/* Schema */}
             <div id="schema" className="flex flex-col space-y-3">
               <div className="flex flex-row gap-3 items-center">
-                <h2 className="font-bold text-2xl w-32">Schema</h2>
+                <h2 className="font-bold text-2xl w-42">Schema</h2>
                 <Button
                   isIconOnly
                   variant="light"
                   size="sm"
                   className="max-w-30"
+                  isDisabled={
+                    schemaFieldArray.fields.length >= getValuesResponse.length
+                  }
                   onPress={() =>
                     schemaFieldArray.append({
                       code: "",
-                      properties: [{ key: "", format: "", components: [] }],
+                      properties: [
+                        {
+                          key: "",
+                          format: "",
+                          properties: [],
+                          type: "string",
+                        },
+                      ],
                     })
                   }
                 >
@@ -734,11 +465,20 @@ export default function Home() {
               </div>
               <Divider className="bg-green-1" />
               {schemaFieldArray.fields.map((schema, index) => {
+                // Collect all selected codes except the current one
+                // Exclude the current schema's code from the selected codes
+                const selectedCodes = schemaFieldArray.fields
+                  .filter((_, i) => i !== index)
+                  .map((s) => s.code);
+
+                const availableResponses = getValuesResponse.filter(
+                  (response) => !selectedCodes.includes(response.code)
+                );
                 return (
                   <div key={schema.id} className="flex flex-col space-y-4">
                     <div className="flex flex-row gap-3 w-full items-center">
                       <Controller
-                        control={control}
+                        control={formProvider.control}
                         name={`schema.${index}.code` as never}
                         render={({ field }) => {
                           return (
@@ -771,12 +511,15 @@ export default function Home() {
                       </Button>
                     </div>
                     {/* Properties Schema */}
-                    <NestedProperty nestIndex={index} />
+                    <NestedProperties
+                      control={formProvider.control}
+                      nestIndex={index}
+                    />
                   </div>
                 );
               })}
+              <Button onClick={onSubmit}>Generate yaml.</Button>
             </div>
-            <Button onClick={onSubmit}>Generate yaml.</Button>
           </div>
         </div>
       </FormProvider>
