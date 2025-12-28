@@ -12,6 +12,7 @@ const useSwaggerUI = () => {
       responses: [
         {
           code: "200",
+          name: "Sample",
           description: "",
         },
       ],
@@ -102,17 +103,9 @@ const useSwaggerUI = () => {
         .reduce((acc, response) => {
           return { ...acc, ...response };
         }, {}),
-      initialResponse: watchResponses
-        .map((response) => {
-          return {
-            [response.name]: {
-              $ref: `#/components/schemas/${response.name}`,
-            },
-          };
-        })
-        .reduce((acc, response) => {
-          return { ...acc, ...response };
-        }, {}),
+      initialResponse: {
+        $ref: `#/components/schemas/${watchResponses[0].name}`,
+      },
     };
 
     let requestBody: Record<string, any> = {};
@@ -152,73 +145,106 @@ const useSwaggerUI = () => {
       };
     }
 
-    let refDataInitial: Record<string, any> = {};
     let schemaProperties: Record<string, any> = {};
+    let _schemaProperties: Record<string, any> = {};
     if (getValueSchema.length > 0) {
-      console.log('getValueSchema', getValueSchema)
-      // schemaProperties = getValueSchema.map((c_schema) => {
-      //   const checkResponseCode = watchResponses.some(
-      //     (x) => x.code === c_schema.code
-      //   );
-      //   if (checkResponseCode) {
-      //     return c_schema.properties
-      //       .map((proper) => {
-      //         if (proper.format === "object") {
-      //           return {
-      //             [proper.key]: {
-      //               type: "object",
-      //               properties: (proper.properties ?? [])
-      //                 .map((compo) => {
-      //                   return {
-      //                     [compo.key]: {
-      //                       type: compo.type,
-      //                       example: compo.example,
-      //                     },
-      //                   };
-      //                 })
-      //                 .reduce((acc, response) => {
-      //                   return { ...acc, ...response };
-      //                 }, {}),
-      //             },
-      //           };
-      //         } else {
-      //           return {
-      //             [proper.key]: {
-      //               type: "array",
-      //               items: {
-      //                 properties: (proper.properties ?? [])
-      //                   .map((compo) => {
-      //                     return {
-      //                       [compo.key]: {
-      //                         type: compo.type,
-      //                         example: compo.example,
-      //                       },
-      //                     };
-      //                   })
-      //                   .reduce((acc, response) => {
-      //                     return { ...acc, ...response };
-      //                   }, {}),
-      //               },
-      //             },
-      //           };
-      //         }
-      //       })
-      //       .reduce((acc: any, response) => {
-      //         return { ...acc, ...response };
-      //       }, {});
-      //   }
-      //   return [];
-      // });
-    }
+      const foundSchema = getValueSchema.filter((getValue) =>
+        watchResponses.some((response) => response.code === getValue.code)
+      );
 
-    // if (schemaProperties[0] && Object.keys(schemaProperties[0]).length > 0) {
-    //   const initialRefKey = Object.keys(schemaProperties[0])[0];
-    //   refDataInitial = {
-    //     [initialRefKey]: {
-    //       $ref: `#/components/schemas/${initialRefKey}`,
-    //     },
-    //   };
-    // }
+      schemaProperties = foundSchema
+        .map((proper) => {
+          const getNameResponse = watchResponses.find(
+            (resp) => resp.code === proper.code
+          )?.name;
+          return {
+            [getNameResponse as never]: {
+              type: "object",
+              properties: proper.properties
+                .map((prop) => {
+                  switch (prop.format) {
+                    case "object":
+                    case "array":
+                      return {
+                        [prop.key]: {
+                          $ref: `#/components/schemas/${prop.subName}`,
+                        },
+                      };
+
+                    default:
+                      return {
+                        [prop.key]: {
+                          type: prop.type,
+                          example: prop.example,
+                        },
+                      };
+                  }
+                })
+                .reduce((acc: any, response) => {
+                  return { ...acc, ...response };
+                }, {}),
+            },
+          };
+        })
+        .reduce((acc, response) => {
+          return { ...acc, ...response };
+        }, {});
+
+      _schemaProperties = foundSchema
+        .flatMap((proper) => {
+          return proper.properties.map((prop) => {
+            switch (prop.format) {
+              case "array":
+                return {
+                  [prop.subName as never]: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: (prop.properties ?? [])
+                        .map((subProp) => {
+                          return {
+                            [subProp.key]: {
+                              type: subProp.type,
+                              example: subProp.example,
+                            },
+                          };
+                        })
+                        .reduce((acc, response) => {
+                          return { ...acc, ...response };
+                        }, {}),
+                    },
+                  },
+                };
+              case "object":
+                return {
+                  [prop.subName as never]: {
+                    type: "object",
+                    properties: proper.properties
+                      .map((prop) => {
+                        return {
+                          [prop.key]: {
+                            type: prop.type,
+                            example: prop.example,
+                          },
+                        };
+                      })
+                      .reduce((acc: any, response) => {
+                        return { ...acc, ...response };
+                      }, {}),
+                  },
+                };
+
+              default:
+                return {};
+            }
+          });
+        })
+        .filter(Boolean)
+        .reduce((acc, response) => {
+          return { ...acc, ...response };
+        }, {});
+      console.log("_schemaProperties", _schemaProperties);
+    }
 
     return {
       openapi: "3.0.0",
@@ -250,15 +276,15 @@ const useSwaggerUI = () => {
             type: "object",
             properties: {
               status: {
-                $ref: "#/components/schemas/StatusResponse",
+                $ref: "#/components/schemas/statusResponse",
               },
-              data: refDataInitial,
+              data: { ...responsesCocoon.initialResponse },
             },
           },
-          //   ...schemaProperties[0],
-          ...responsesCocoon.initialResponse,
+          ...schemaProperties,
           ...properRequestBody,
-          StatusResponse: {
+          ..._schemaProperties,
+          statusResponse: {
             type: "object",
             properties: {
               code: {

@@ -28,7 +28,8 @@ const NestedValues = ({
           className="max-w-30"
           onPress={() =>
             append({
-              value: "",
+              key: "",
+              format: "",
             })
           }
         >
@@ -58,13 +59,13 @@ const NestedValues = ({
             <Controller
               control={control}
               name={
-                `schema.${nestedSchemaIndex}.properties.${nestedPropertyIndex}.components.${componentIndex}.example` as never
+                `schema.${nestedSchemaIndex}.properties.${nestedPropertyIndex}.properties.${componentIndex}.example` as never
               }
               render={({ field }) => {
                 return (
                   <Input
                     {...field}
-                    label="example"
+                    label="Example"
                     variant="bordered"
                     size="sm"
                     className="max-w-32"
@@ -75,7 +76,7 @@ const NestedValues = ({
             <Controller
               control={control}
               name={
-                `schema.${nestedSchemaIndex}.properties.${nestedPropertyIndex}.components.${componentIndex}.type` as never
+                `schema.${nestedSchemaIndex}.properties.${nestedPropertyIndex}.properties.${componentIndex}.type` as never
               }
               render={({ field }) => {
                 return (

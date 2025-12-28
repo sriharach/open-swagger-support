@@ -25,6 +25,7 @@ export type ResponseSupport = {
 };
 export type ComponentSupport = {
   id?: string;
+  subName?: string
   key: string;
   format: "array" | "object" | "";
   type: "string" | "number" | "boolean";
