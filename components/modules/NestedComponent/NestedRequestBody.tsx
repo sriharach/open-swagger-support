@@ -89,7 +89,7 @@ const NestedRequestBody = ({
                 return (
                   <Input
                     {...field}
-                    label="Name"
+                    label="Example"
                     variant="bordered"
                     size="sm"
                     className="max-w-32"
