@@ -8,6 +8,11 @@ import {
   Divider,
   Button,
   Checkbox,
+  Drawer,
+  useDisclosure,
+  DrawerContent,
+  DrawerHeader,
+  DrawerBody,
 } from "@heroui/react";
 import yaml from "js-yaml";
 import { FormProvider, Controller } from "react-hook-form";
@@ -26,6 +31,7 @@ import TrashIcon from "@/components/icons/TrashIcon";
 import useSwaggerUI from "@/hooks/useSwaggerUI";
 import NestedProperties from "@/components/modules/NestedComponent/NestedProperties";
 import NestedRequestBody from "@/components/modules/NestedComponent/NestedRequestBody";
+import CopyIcon from "@/components/icons/CopyIcon";
 
 export default function Home() {
   const {
@@ -38,12 +44,14 @@ export default function Home() {
     generateOpenApiSpec,
   } = useSwaggerUI();
 
+  const [yamlDump, setYamlDump] = useState<string | null>(null);
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const onSubmit = () => {
     const yamlDump = yaml.dump(generateOpenApiSpec);
-    console.log("yamlDump :>> ", yamlDump);
+    setYamlDump(yamlDump);
+    onOpen();
   };
 
-  // Add state for width and dragging
   const [swaggerWidth, setSwaggerWidth] = useState(600); // initial width
   const dragging = useRef(false);
 
@@ -74,6 +82,35 @@ export default function Home() {
 
   return (
     <section>
+      <Drawer isOpen={isOpen} onOpenChange={onOpenChange} size="3xl">
+        <DrawerContent>
+          {() => (
+            <>
+              <DrawerHeader className="flex flex-col gap-1">Yaml.</DrawerHeader>
+              <DrawerBody>
+                <div className="flex items-center mb-2">
+                  <Button
+                    size="sm"
+                    isIconOnly
+                    variant="solid"
+                    onPress={() => {
+                      if (yamlDump) {
+                        navigator.clipboard.writeText(yamlDump);
+                      }
+                    }}
+                  >
+                    <CopyIcon />
+                  </Button>
+                </div>
+                <pre className="whitespace-pre-wrap break-all bg-[#262b36] text-white p-4 rounded-xl">
+                  {yamlDump}
+                </pre>
+              </DrawerBody>
+            </>
+          )}
+        </DrawerContent>
+      </Drawer>
+
       <FormProvider {...formProvider}>
         <div
           className="grid"
@@ -361,6 +398,8 @@ export default function Home() {
                       code: "",
                       description: "",
                       name: "",
+                      codeResponse: "",
+                      message: "",
                     })
                   }
                 >
@@ -380,13 +419,32 @@ export default function Home() {
                       name={`responses.${index}.code` as never}
                       render={({ field }) => {
                         return (
-                          <Input
-                            {...field}
-                            label="Status code"
-                            variant="bordered"
-                            size="sm"
-                            className="max-w-60"
-                          />
+                          <div className="flex flex-row gap-3 items-center shrink">
+                            <Input
+                              {...field}
+                              label="Status code"
+                              variant="bordered"
+                              size="sm"
+                              className="max-w-40"
+                            />
+                            {String(field.value) >= "400" && (
+                              <Controller
+                                control={formProvider.control}
+                                name={`responses.${index}.message` as never}
+                                render={({ field }) => {
+                                  return (
+                                    <Input
+                                      {...field}
+                                      label="Message"
+                                      variant="bordered"
+                                      size="sm"
+                                      className="max-w-40"
+                                    />
+                                  );
+                                }}
+                              />
+                            )}
+                          </div>
                         );
                       }}
                     />
@@ -400,7 +458,7 @@ export default function Home() {
                             label="Name"
                             variant="bordered"
                             size="sm"
-                            className="max-w-60"
+                            className="max-w-40"
                           />
                         );
                       }}
@@ -415,7 +473,22 @@ export default function Home() {
                             label="Description"
                             variant="bordered"
                             size="sm"
-                            className="max-w-60"
+                            className="max-w-40"
+                          />
+                        );
+                      }}
+                    />
+                    <Controller
+                      control={formProvider.control}
+                      name={`responses.${index}.codeResponse` as never}
+                      render={({ field }) => {
+                        return (
+                          <Input
+                            {...field}
+                            label="Code response"
+                            variant="bordered"
+                            size="sm"
+                            className="max-w-40"
                           />
                         );
                       }}
@@ -443,9 +516,10 @@ export default function Home() {
                   variant="light"
                   size="sm"
                   className="max-w-30"
-                  isDisabled={
-                    schemaFieldArray.fields.length >= getValuesResponse.length
-                  }
+                  // isDisabled={
+                  //   schemaFieldArray.fields.length >= getValuesResponse.length
+                  // }
+                  isDisabled
                   onPress={() =>
                     schemaFieldArray.append({
                       code: "",
@@ -467,13 +541,13 @@ export default function Home() {
               {schemaFieldArray.fields.map((schema, index) => {
                 // Collect all selected codes except the current one
                 // Exclude the current schema's code from the selected codes
-                const selectedCodes = schemaFieldArray.fields
-                  .filter((_, i) => i !== index)
-                  .map((s) => s.code);
+                // const selectedCodes = schemaFieldArray.fields
+                //   .filter((_, i) => i !== index)
+                //   .map((s) => s.code);
 
-                const availableResponses = getValuesResponse.filter(
-                  (response) => !selectedCodes.includes(response.code)
-                );
+                // const availableResponses = getValuesResponse.filter(
+                //   (response) => !selectedCodes.includes(response.code)
+                // );
                 return (
                   <div key={schema.id} className="flex flex-col space-y-4">
                     <div className="flex flex-row gap-3 w-full items-center">
@@ -483,6 +557,7 @@ export default function Home() {
                         render={({ field }) => {
                           return (
                             <Select
+                              isDisabled
                               onSelectionChange={(value) =>
                                 field.onChange(value.currentKey)
                               }
@@ -500,7 +575,7 @@ export default function Home() {
                           );
                         }}
                       />
-                      <Button
+                      {/* <Button
                         isIconOnly
                         color="danger"
                         size="sm"
@@ -508,7 +583,7 @@ export default function Home() {
                         onPress={() => schemaFieldArray.remove(index)}
                       >
                         <TrashIcon />
-                      </Button>
+                      </Button> */}
                     </div>
                     {/* Properties Schema */}
                     <NestedProperties

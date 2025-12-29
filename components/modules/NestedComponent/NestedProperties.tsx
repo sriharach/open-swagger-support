@@ -95,19 +95,46 @@ const NestedProperties = ({
                           }}
                         />
                       )}
-                      <Select
-                        onSelectionChange={(value) =>
-                          field.onChange(value.currentKey)
-                        }
-                        selectedKeys={[field.value]}
-                        label="Format"
-                        className="max-w-32"
-                        variant="underlined"
+                      <div
+                        className={clsx(
+                          "flex flex-row",
+                          field.value !== "" ? "w-full gap-3" : "w-28"
+                        )}
                       >
-                        <SelectItem key={""}>{"None"}</SelectItem>
-                        <SelectItem key={"object"}>{"Object"}</SelectItem>
-                        <SelectItem key={"array"}>{"Array"}</SelectItem>
-                      </Select>
+                        {field.value !== "" && (
+                          <Controller
+                            control={control}
+                            name={
+                              `schema.${nestIndex}.properties.${propertyIndex}.subName` as never
+                            }
+                            render={({ field }) => {
+                              return (
+                                <Input
+                                  {...field}
+                                  label="Sub name"
+                                  variant="bordered"
+                                  size="sm"
+                                  className="max-w-32"
+                                />
+                              );
+                            }}
+                          />
+                        )}
+                        <Select
+                          onSelectionChange={(value) =>
+                            field.onChange(value.currentKey)
+                          }
+                          selectedKeys={[field.value]}
+                          label="Format"
+                          className="max-w-32"
+                          variant="underlined"
+                        >
+                          <SelectItem key={""}>{"None"}</SelectItem>
+                          <SelectItem key={"object"}>{"Object"}</SelectItem>
+                          <SelectItem key={"array"}>{"Array"}</SelectItem>
+                        </Select>
+                      </div>
+
                       {field.value === "" ? (
                         <Controller
                           control={control}
