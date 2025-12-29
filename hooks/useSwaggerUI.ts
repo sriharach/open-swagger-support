@@ -303,7 +303,7 @@ const useSwaggerUI = () => {
         [watchApiPath]: {
           [watchMethod]: {
             tags: [watchApiName],
-            summary: "Preview endpoint",
+            summary: "",
             parameters: parameters,
             responses: responsesCocoon.resultResponse,
             ...requestBody,

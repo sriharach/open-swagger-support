@@ -8,6 +8,11 @@ import {
   Divider,
   Button,
   Checkbox,
+  Drawer,
+  useDisclosure,
+  DrawerContent,
+  DrawerHeader,
+  DrawerBody,
 } from "@heroui/react";
 import yaml from "js-yaml";
 import { FormProvider, Controller } from "react-hook-form";
@@ -26,6 +31,7 @@ import TrashIcon from "@/components/icons/TrashIcon";
 import useSwaggerUI from "@/hooks/useSwaggerUI";
 import NestedProperties from "@/components/modules/NestedComponent/NestedProperties";
 import NestedRequestBody from "@/components/modules/NestedComponent/NestedRequestBody";
+import CopyIcon from "@/components/icons/CopyIcon";
 
 export default function Home() {
   const {
@@ -38,9 +44,12 @@ export default function Home() {
     generateOpenApiSpec,
   } = useSwaggerUI();
 
+  const [yamlDump, setYamlDump] = useState<string | null>(null);
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const onSubmit = () => {
     const yamlDump = yaml.dump(generateOpenApiSpec);
-    console.log("yamlDump :>> ", yamlDump);
+    setYamlDump(yamlDump);
+    onOpen();
   };
 
   const [swaggerWidth, setSwaggerWidth] = useState(600); // initial width
@@ -73,6 +82,35 @@ export default function Home() {
 
   return (
     <section>
+      <Drawer isOpen={isOpen} onOpenChange={onOpenChange} size="3xl">
+        <DrawerContent>
+          {() => (
+            <>
+              <DrawerHeader className="flex flex-col gap-1">Yaml.</DrawerHeader>
+              <DrawerBody>
+                <div className="flex items-center mb-2">
+                  <Button
+                    size="sm"
+                    isIconOnly
+                    variant="solid"
+                    onPress={() => {
+                      if (yamlDump) {
+                        navigator.clipboard.writeText(yamlDump);
+                      }
+                    }}
+                  >
+                    <CopyIcon />
+                  </Button>
+                </div>
+                <pre className="whitespace-pre-wrap break-all bg-[#262b36] text-white p-4 rounded-xl">
+                  {yamlDump}
+                </pre>
+              </DrawerBody>
+            </>
+          )}
+        </DrawerContent>
+      </Drawer>
+
       <FormProvider {...formProvider}>
         <div
           className="grid"
