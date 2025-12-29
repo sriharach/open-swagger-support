@@ -43,7 +43,6 @@ export default function Home() {
     console.log("yamlDump :>> ", yamlDump);
   };
 
-  // Add state for width and dragging
   const [swaggerWidth, setSwaggerWidth] = useState(600); // initial width
   const dragging = useRef(false);
 
@@ -361,6 +360,8 @@ export default function Home() {
                       code: "",
                       description: "",
                       name: "",
+                      codeResponse: "",
+                      message: "",
                     })
                   }
                 >
@@ -380,13 +381,32 @@ export default function Home() {
                       name={`responses.${index}.code` as never}
                       render={({ field }) => {
                         return (
-                          <Input
-                            {...field}
-                            label="Status code"
-                            variant="bordered"
-                            size="sm"
-                            className="max-w-60"
-                          />
+                          <div className="flex flex-row gap-3 items-center shrink">
+                            <Input
+                              {...field}
+                              label="Status code"
+                              variant="bordered"
+                              size="sm"
+                              className="max-w-40"
+                            />
+                            {String(field.value) >= "400" && (
+                              <Controller
+                                control={formProvider.control}
+                                name={`responses.${index}.message` as never}
+                                render={({ field }) => {
+                                  return (
+                                    <Input
+                                      {...field}
+                                      label="Message"
+                                      variant="bordered"
+                                      size="sm"
+                                      className="max-w-40"
+                                    />
+                                  );
+                                }}
+                              />
+                            )}
+                          </div>
                         );
                       }}
                     />
@@ -400,7 +420,7 @@ export default function Home() {
                             label="Name"
                             variant="bordered"
                             size="sm"
-                            className="max-w-60"
+                            className="max-w-40"
                           />
                         );
                       }}
@@ -415,7 +435,22 @@ export default function Home() {
                             label="Description"
                             variant="bordered"
                             size="sm"
-                            className="max-w-60"
+                            className="max-w-40"
+                          />
+                        );
+                      }}
+                    />
+                    <Controller
+                      control={formProvider.control}
+                      name={`responses.${index}.codeResponse` as never}
+                      render={({ field }) => {
+                        return (
+                          <Input
+                            {...field}
+                            label="Code response"
+                            variant="bordered"
+                            size="sm"
+                            className="max-w-40"
                           />
                         );
                       }}
@@ -443,9 +478,10 @@ export default function Home() {
                   variant="light"
                   size="sm"
                   className="max-w-30"
-                  isDisabled={
-                    schemaFieldArray.fields.length >= getValuesResponse.length
-                  }
+                  // isDisabled={
+                  //   schemaFieldArray.fields.length >= getValuesResponse.length
+                  // }
+                  isDisabled
                   onPress={() =>
                     schemaFieldArray.append({
                       code: "",
@@ -467,13 +503,13 @@ export default function Home() {
               {schemaFieldArray.fields.map((schema, index) => {
                 // Collect all selected codes except the current one
                 // Exclude the current schema's code from the selected codes
-                const selectedCodes = schemaFieldArray.fields
-                  .filter((_, i) => i !== index)
-                  .map((s) => s.code);
+                // const selectedCodes = schemaFieldArray.fields
+                //   .filter((_, i) => i !== index)
+                //   .map((s) => s.code);
 
-                const availableResponses = getValuesResponse.filter(
-                  (response) => !selectedCodes.includes(response.code)
-                );
+                // const availableResponses = getValuesResponse.filter(
+                //   (response) => !selectedCodes.includes(response.code)
+                // );
                 return (
                   <div key={schema.id} className="flex flex-col space-y-4">
                     <div className="flex flex-row gap-3 w-full items-center">
@@ -483,6 +519,7 @@ export default function Home() {
                         render={({ field }) => {
                           return (
                             <Select
+                              isDisabled
                               onSelectionChange={(value) =>
                                 field.onChange(value.currentKey)
                               }
@@ -500,7 +537,7 @@ export default function Home() {
                           );
                         }}
                       />
-                      <Button
+                      {/* <Button
                         isIconOnly
                         color="danger"
                         size="sm"
@@ -508,7 +545,7 @@ export default function Home() {
                         onPress={() => schemaFieldArray.remove(index)}
                       >
                         <TrashIcon />
-                      </Button>
+                      </Button> */}
                     </div>
                     {/* Properties Schema */}
                     <NestedProperties

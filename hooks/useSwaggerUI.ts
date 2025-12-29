@@ -14,6 +14,7 @@ const useSwaggerUI = () => {
           code: "200",
           name: "Sample",
           description: "",
+          codeResponse: "",
         },
       ],
       schema: [
@@ -83,7 +84,7 @@ const useSwaggerUI = () => {
         ),
       };
     });
-
+    // Responses
     const responsesCocoon = {
       resultResponse: watchResponses
         .map((response) => {
@@ -93,7 +94,9 @@ const useSwaggerUI = () => {
               content: {
                 "*/*": {
                   schema: {
-                    $ref: `#/components/schemas/${watchApiName}`,
+                    $ref: `#/components/schemas/${
+                      response.code >= "400" ? response.name : watchApiName
+                    }`,
                   },
                 },
               },
@@ -106,8 +109,10 @@ const useSwaggerUI = () => {
       initialResponse: {
         $ref: `#/components/schemas/${watchResponses[0].name}`,
       },
+      resultErrorCodes: watchResponses.map((response) => response.codeResponse),
     };
 
+    // Request Body
     let requestBody: Record<string, any> = {};
     let properRequestBody: Record<string, any> = {};
     const requestBodyElement = watchRequestBody[0];
@@ -145,8 +150,10 @@ const useSwaggerUI = () => {
       };
     }
 
+    // Schema Properties
     let schemaProperties: Record<string, any> = {};
     let _schemaProperties: Record<string, any> = {};
+    let schemaErrorProperties: Record<string, any> = {};
     if (getValueSchema.length > 0) {
       const foundSchema = getValueSchema.filter((getValue) =>
         watchResponses.some((response) => response.code === getValue.code)
@@ -156,9 +163,9 @@ const useSwaggerUI = () => {
         .map((proper) => {
           const getNameResponse = watchResponses.find(
             (resp) => resp.code === proper.code
-          )?.name;
+          );
           return {
-            [getNameResponse as never]: {
+            [getNameResponse?.name as never]: {
               type: "object",
               properties: proper.properties
                 .map((prop) => {
@@ -219,16 +226,16 @@ const useSwaggerUI = () => {
                 return {
                   [prop.subName as never]: {
                     type: "object",
-                    properties: proper.properties
-                      .map((prop) => {
+                    properties: (prop.properties ?? [])
+                      .map((subProp) => {
                         return {
-                          [prop.key]: {
-                            type: prop.type,
-                            example: prop.example,
+                          [subProp.key]: {
+                            type: subProp.type,
+                            example: subProp.example,
                           },
                         };
                       })
-                      .reduce((acc: any, response) => {
+                      .reduce((acc, response) => {
                         return { ...acc, ...response };
                       }, {}),
                   },
@@ -240,10 +247,43 @@ const useSwaggerUI = () => {
           });
         })
         .filter(Boolean)
-        .reduce((acc, response) => {
+        .reduce((acc: any, response) => {
           return { ...acc, ...response };
         }, {});
-      console.log("_schemaProperties", _schemaProperties);
+
+      const errorCase = watchResponses.filter((proper) => proper.code >= "400");
+      if (errorCase) {
+        schemaErrorProperties = errorCase
+          .map((proper) => {
+            return {
+              [proper.name]: {
+                type: "object",
+                properties: {
+                  status: {
+                    type: "object",
+                    properties: {
+                      code: {
+                        type: "string",
+                        example: proper.codeResponse,
+                      },
+                      type: {
+                        type: "string",
+                        example: "info",
+                      },
+                      message: {
+                        type: "string",
+                        example: proper.message,
+                      },
+                    },
+                  },
+                },
+              },
+            };
+          })
+          .reduce((acc: any, response) => {
+            return { ...acc, ...response };
+          }, {});
+      }
     }
 
     return {
@@ -284,12 +324,13 @@ const useSwaggerUI = () => {
           ...schemaProperties,
           ...properRequestBody,
           ..._schemaProperties,
+          ...schemaErrorProperties,
           statusResponse: {
             type: "object",
             properties: {
               code: {
                 type: "string",
-                example: "10000",
+                example: watchResponses[0]?.codeResponse || "10000",
               },
               type: {
                 type: "string",

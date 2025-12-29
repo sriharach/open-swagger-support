@@ -21,6 +21,8 @@ export type RequestBodySupport = {
 export type ResponseSupport = {
   code: string;
   name: string;
+  message?: string;
+  codeResponse: string;
   description: string;
 };
 export type ComponentSupport = {
