@@ -1,12 +1,17 @@
 // libs
 import { useFieldArray, useForm } from "react-hook-form";
+import yaml from "js-yaml";
+import { useDisclosure } from "@heroui/react";
 
 // types
 import { type UseFormOpenApi } from "@/types/models/useForm";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { mapSchemaTypes } from "@/constant/api-type";
 
 const useSwaggerUI = () => {
+  const [yamlDump, setYamlDump] = useState<string>("");
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
   const formProvider = useForm<UseFormOpenApi>({
     defaultValues: {
       responses: [
@@ -354,8 +359,16 @@ const useSwaggerUI = () => {
     getValueSchema,
     watchRequestBody,
   ]);
+  // YAML generation and drawer open
+  const handleGenerateYaml = () => {
+    const yamlDump = yaml.dump(generateOpenApiSpec);
+    setYamlDump(yamlDump);
+    onOpen();
+  };
 
   return {
+    yamlDump,
+    isOpen,
     formProvider,
     parametersFieldArray,
     requestBodyFieldArray,
@@ -364,6 +377,8 @@ const useSwaggerUI = () => {
     getValuesResponse,
     getValueSchema,
     generateOpenApiSpec,
+    handleGenerateYaml,
+    onOpenChange,
   };
 };
 
