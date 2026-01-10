@@ -26,6 +26,8 @@ export type ResponseSupport = {
   description: string;
 };
 export type ComponentSupport = {
+  isOpenChildren?: boolean;
+  level?: number; 
   id?: string;
   subName?: string
   key: string;

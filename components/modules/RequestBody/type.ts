@@ -1,5 +1,5 @@
 // types
-import { OpenApiFormSupport } from "@/types/models/useForm";
+import { OpenApiFormSupport } from "@/types/models/useForm-interface.model";
 
 // libs
 import { UseFieldArrayReturn, UseFormReturn } from "react-hook-form";

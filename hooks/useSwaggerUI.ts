@@ -2,11 +2,23 @@
 import { useFieldArray, useForm } from "react-hook-form";
 import yaml from "js-yaml";
 import { useDisclosure } from "@heroui/react";
-
-// types
-import { type UseFormOpenApi } from "@/types/models/useForm";
 import { useEffect, useMemo, useState } from "react";
 import { mapSchemaTypes } from "@/constant/api-type";
+
+// types
+import {
+  ComponentSupport,
+  type UseFormOpenApi,
+} from "@/types/models/useForm-interface.model";
+
+import {
+  SwaggerInterface,
+  SwaggerPropertyArray,
+  SwaggerPropertyExample,
+  SwaggerPropertyObject,
+  SwaggerRequestBody,
+  SwaggerRequestBodyProperty,
+} from "@/types/models/swagger-interface.model";
 
 const useSwaggerUI = () => {
   const [yamlDump, setYamlDump] = useState<string>("");
@@ -44,6 +56,7 @@ const useSwaggerUI = () => {
   const watchApiName = watch("name");
   const watchParameters = watch("parameters");
   const watchRequestBody = watch("requestBody");
+  console.log("watchRequestBody :>> ", watchRequestBody);
   const watchResponses = watch("responses");
 
   const getValueSchema = getValues("schema");
@@ -118,42 +131,80 @@ const useSwaggerUI = () => {
     };
 
     // Request Body
-    let requestBody: Record<string, any> = {};
-    let properRequestBody: Record<string, any> = {};
-    const requestBodyElement = watchRequestBody[0];
-    if (requestBodyElement) {
+    let requestBody: Record<string, SwaggerRequestBody> = {};
+    let properRequestBody: Record<string, SwaggerInterface> = {};
+
+    if (watchRequestBody.length > 0) {
       requestBody = {
         requestBody: {
-          description: requestBodyElement.description || "",
-          content: {
-            "*/*": {
-              schema: {
-                $ref: `#/components/schemas/${requestBodyElement.name}`,
-              },
-            },
-          },
-          required: requestBodyElement.required || false,
-        },
-      };
-
-      properRequestBody = {
-        [requestBodyElement.name]: {
-          type: "object",
-          properties: (requestBodyElement.properties ?? [])
-            .map((proper) => {
+          description: "",
+          required: watchRequestBody.some((reqBody) => reqBody.required),
+          content: watchRequestBody
+            .map((requestBodyElement) => {
               return {
-                [proper.key]: {
-                  type: proper.type,
-                  example: proper.example,
+                [requestBodyElement.name]: {
+                  schema: {
+                    $ref: `#/components/schemas/${requestBodyElement.name}`,
+                  },
                 },
               };
             })
-            .reduce((acc, response) => {
+            .reduce<SwaggerRequestBody["content"]>((acc, response) => {
               return { ...acc, ...response };
             }, {}),
         },
       };
     }
+
+    const nestedRequestBody = (
+      _requestBodyElement: ComponentSupport[] = []
+    ): Record<string, SwaggerRequestBodyProperty> => {
+      return _requestBodyElement
+        .map<Record<string, SwaggerRequestBodyProperty>>((proper) => {
+          switch (proper.format) {
+            case "object":
+              return {
+                [proper.key]: {
+                  type: "object",
+                  properties: nestedRequestBody(proper.properties ?? []),
+                },
+              } as Record<string, SwaggerPropertyObject>;
+            case "array":
+              return {
+                [proper.key]: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: nestedRequestBody(proper.properties ?? []),
+                  },
+                },
+              } as unknown as Record<string, SwaggerPropertyArray>;
+            default:
+              return {
+                [proper.key]: {
+                  type: proper.type,
+                  example: proper.example,
+                } as SwaggerPropertyExample,
+              };
+          }
+        })
+        .reduce<Record<string, SwaggerRequestBodyProperty>>((acc, response) => {
+          return { ...acc, ...response };
+        }, {});
+    };
+
+    properRequestBody = watchRequestBody
+      .map<Record<string, SwaggerInterface>>((requestBodyElement) => {
+        return {
+          [requestBodyElement.name]: {
+            type: "object",
+            properties: nestedRequestBody(requestBodyElement.properties),
+          },
+        };
+      })
+      .reduce((acc, response) => {
+        return { ...acc, ...response };
+      }, {});
 
     // Schema Properties
     let schemaProperties: Record<string, any> = {};
@@ -259,7 +310,7 @@ const useSwaggerUI = () => {
       const errorCase = watchResponses.filter((proper) => proper.code >= "400");
       if (errorCase) {
         schemaErrorProperties = errorCase
-          .map((proper) => {
+          .map((proper): Record<string, any> => {
             return {
               [proper.name]: {
                 type: "object",

@@ -19,7 +19,6 @@ import "swagger-ui-react/swagger-ui.css";
 
 // configs
 import apiQuality from "@/constant/api-quality";
-import mockSwagger from "@/constant/mock.json";
 
 // hooks
 import useDragging from "@/hooks/useDragging";
@@ -27,11 +26,11 @@ import useSwaggerUI from "@/hooks/useSwaggerUI";
 
 // types
 import apiTypes, { formatTypes } from "@/constant/api-type";
+
+// components
 import PlusIcon from "@/components/icons/PlusIcon";
 import TrashIcon from "@/components/icons/TrashIcon";
-
 import NestedProperties from "@/components/modules/NestedComponent/NestedProperties";
-import NestedRequestBody from "@/components/modules/NestedComponent/NestedRequestBody";
 import CopyIcon from "@/components/icons/CopyIcon";
 import RequestBody from "@/components/modules/RequestBody";
 
@@ -95,13 +94,14 @@ export default function Home() {
           >
             <h2 className="font-bold text-2xl">Swagger Support</h2>
             <MemoSwagger spec={generateOpenApiSpec as never} />
-            {/* <SwaggerUI spec={mockSwagger} /> */}
           </div>
+
           {/* Draggable divider */}
           <div
             className="border-green-3 cursor-col-resize z-10 w-1"
             onMouseDown={handleMouseDown}
           />
+
           <div
             id="api-path"
             className="flex flex-col space-y-3 p-4 overflow-y-auto h-screen"

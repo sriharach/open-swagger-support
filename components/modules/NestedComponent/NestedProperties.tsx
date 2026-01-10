@@ -6,7 +6,7 @@ import { Button, Input, Select, SelectItem } from "@heroui/react";
 // components
 import PlusIcon from "@/components/icons/PlusIcon";
 import TrashIcon from "@/components/icons/TrashIcon";
-import { OpenApiFormSupport, SchemaSupport } from "@/types/models/useForm";
+import { OpenApiFormSupport, SchemaSupport } from "@/types/models/useForm-interface.model";
 import NestedValues from "./NestedValues";
 
 const NestedProperties = ({

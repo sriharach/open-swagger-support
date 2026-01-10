@@ -1,6 +1,6 @@
 import PlusIcon from "@/components/icons/PlusIcon";
 import TrashIcon from "@/components/icons/TrashIcon";
-import { OpenApiFormSupport } from "@/types/models/useForm";
+import { OpenApiFormSupport } from "@/types/models/useForm-interface.model";
 import { Button, Divider, Input, Select, SelectItem } from "@heroui/react";
 import { Control, Controller, useFieldArray } from "react-hook-form";
 

@@ -1,14 +1,19 @@
 // libs
 import { Button, Checkbox, Divider, Input } from "@heroui/react";
-import { Controller } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 
 // components
 import PlusIcon from "@/components/icons/PlusIcon";
 import TrashIcon from "@/components/icons/TrashIcon";
 import NestedRequestBody from "../NestedComponent/NestedRequestBody";
 import { RequestBodyProps } from "./type";
+import { OpenApiFormSupport } from "@/types/models/useForm-interface.model";
 
-const RequestBody = ({ requestBodyFieldArray, formProvider }: RequestBodyProps) => {
+const RequestBody = ({
+  requestBodyFieldArray,
+  formProvider,
+}: RequestBodyProps) => {
+  const formContext = useFormContext<OpenApiFormSupport>();
   return (
     <>
       <div id="request-body" className="flex flex-col space-y-3">
@@ -19,7 +24,6 @@ const RequestBody = ({ requestBodyFieldArray, formProvider }: RequestBodyProps) 
             variant="light"
             size="sm"
             className="max-w-30"
-            isDisabled={requestBodyFieldArray.fields.length >= 1}
             onPress={() =>
               requestBodyFieldArray.append({
                 name: "",
@@ -42,7 +46,7 @@ const RequestBody = ({ requestBodyFieldArray, formProvider }: RequestBodyProps) 
                   render={({ field }) => {
                     return (
                       <div className="text-center">
-                        <p className="text-sm font-medium">Required Field</p>
+                        <p className="text-xs font-medium">Required Field</p>
                         <Checkbox
                           onValueChange={(value) => field.onChange(value)}
                         />
@@ -76,8 +80,9 @@ const RequestBody = ({ requestBodyFieldArray, formProvider }: RequestBodyProps) 
                 </Button>
               </div>
               <NestedRequestBody
-                nestIndex={index}
+                title={formContext.watch(`requestBody.${index}.name`)}
                 control={formProvider.control}
+                keyField={`requestBody.${index}.properties` as never}
               />
             </div>
           );
