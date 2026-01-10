@@ -1,5 +1,37 @@
-const apiTypes = ["array", "path", "query", "header"];
-export const formatTypes = ["string", "number", "boolean"];
+import { SwaggerParameterArray, SwaggerParameterString } from "@/types/models/swagger-interface.model";
+
+const apiTypes = [
+  {
+    label: "Array",
+    value: "array",
+  },
+  {
+    label: "Header",
+    value: "header",
+  },
+  {
+    label: "Path",
+    value: "path",
+  },
+  {
+    label: "Query",
+    value: "query",
+  },
+];
+export const formatTypes = [
+  {
+    label: "String",
+    value: "string",
+  },
+  {
+    label: "Number",
+    value: "number",
+  },
+  {
+    label: "Boolean",
+    value: "boolean",
+  },
+];
 
 const schemasType = {
   array: {
@@ -18,14 +50,6 @@ const schemasType = {
     type: "string",
   },
 };
-
-export const mapSchemaTypes = (
-  arg: keyof typeof schemasType,
-  formatType: typeof formatTypes
-) =>
-  arg === "array"
-    ? { ...schemasType[arg], items: { type: formatType ?? 'string' } }
-    : { ...schemasType[arg], type: formatType ?? "string" };
 
 export type ApiTypes = typeof apiTypes;
 

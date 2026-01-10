@@ -38,3 +38,23 @@ export interface SwaggerRequestBody {
     }
   >;
 }
+
+export interface SwaggerParameterArray {
+  type: string;
+  items: {
+    type: string;
+  };
+}
+
+export interface SwaggerParameterString {
+  type: string;
+  default: string;
+  enum?: string[];
+}
+export interface SwaggerParameterProperty {
+  name: string;
+  in: string;
+  required: boolean;
+  schema: SwaggerParameterString | SwaggerParameterArray
+}
+

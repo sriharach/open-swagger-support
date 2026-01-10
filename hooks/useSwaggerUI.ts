@@ -3,7 +3,6 @@ import { useFieldArray, useForm } from "react-hook-form";
 import yaml from "js-yaml";
 import { useDisclosure } from "@heroui/react";
 import { useEffect, useMemo, useState } from "react";
-import { mapSchemaTypes } from "@/constant/api-type";
 
 // types
 import {
@@ -13,6 +12,9 @@ import {
 
 import {
   SwaggerInterface,
+  SwaggerParameterArray,
+  SwaggerParameterProperty,
+  SwaggerParameterString,
   SwaggerPropertyArray,
   SwaggerPropertyExample,
   SwaggerPropertyObject,
@@ -56,7 +58,6 @@ const useSwaggerUI = () => {
   const watchApiName = watch("name");
   const watchParameters = watch("parameters");
   const watchRequestBody = watch("requestBody");
-  console.log("watchRequestBody :>> ", watchRequestBody);
   const watchResponses = watch("responses");
 
   const getValueSchema = getValues("schema");
@@ -91,44 +92,45 @@ const useSwaggerUI = () => {
   const generateOpenApiSpec = useMemo(() => {
     if (!watchApiPath || !watchApiName || !watchMethod) return undefined;
 
-    const parameters = watchParameters.map((parameter) => {
-      return {
-        name: parameter.name,
-        in: parameter.in,
-        required: parameter.required,
-        schema: mapSchemaTypes(
-          parameter.in as keyof typeof mapSchemaTypes,
-          parameter.format as never
-        ),
-      };
-    });
-    // Responses
-    const responsesCocoon = {
-      resultResponse: watchResponses
-        .map((response) => {
-          return {
-            [response.code]: {
-              description: response.description,
-              content: {
-                "*/*": {
-                  schema: {
-                    $ref: `#/components/schemas/${
-                      response.code >= "400" ? response.name : watchApiName
-                    }`,
-                  },
-                },
-              },
+    // Parameters
+    const parameters = watchParameters.map<SwaggerParameterProperty>(
+      (parameter) => {
+        const parameterEnum = parameter.enum
+          .split(",")
+          .map((item) => item.trim());
+
+        let resultParameterSchema:
+          | SwaggerParameterArray
+          | SwaggerParameterString = {
+          type: "string",
+          default: parameter.default,
+        };
+
+        if (parameterEnum.length > 0 && parameterEnum[0] !== "") {
+          resultParameterSchema = {
+            ...resultParameterSchema,
+            default: parameterEnum ? parameterEnum[0] : "",
+            enum: parameterEnum ? parameterEnum : [],
+          };
+        }
+
+        if (parameter.in === "array") {
+          resultParameterSchema = {
+            type: "array",
+            items: {
+              type: parameter.format || "string",
             },
           };
-        })
-        .reduce((acc, response) => {
-          return { ...acc, ...response };
-        }, {}),
-      initialResponse: {
-        $ref: `#/components/schemas/${watchResponses[0].name}`,
-      },
-      resultErrorCodes: watchResponses.map((response) => response.codeResponse),
-    };
+        }
+        return {
+          in: parameter.in,
+          name: parameter.name,
+          required: parameter.required,
+          schema: resultParameterSchema,
+          explode: true,
+        };
+      }
+    );
 
     // Request Body
     let requestBody: Record<string, SwaggerRequestBody> = {};
@@ -155,7 +157,8 @@ const useSwaggerUI = () => {
         },
       };
     }
-
+    
+    // Request Body
     const nestedRequestBody = (
       _requestBodyElement: ComponentSupport[] = []
     ): Record<string, SwaggerRequestBodyProperty> => {
@@ -205,6 +208,34 @@ const useSwaggerUI = () => {
       .reduce((acc, response) => {
         return { ...acc, ...response };
       }, {});
+
+    // Responses
+    const responsesCocoon = {
+      resultResponse: watchResponses
+        .map((response) => {
+          return {
+            [response.code]: {
+              description: response.description,
+              content: {
+                "*/*": {
+                  schema: {
+                    $ref: `#/components/schemas/${
+                      response.code >= "400" ? response.name : watchApiName
+                    }`,
+                  },
+                },
+              },
+            },
+          };
+        })
+        .reduce((acc, response) => {
+          return { ...acc, ...response };
+        }, {}),
+      initialResponse: {
+        $ref: `#/components/schemas/${watchResponses[0].name}`,
+      },
+      resultErrorCodes: watchResponses.map((response) => response.codeResponse),
+    };
 
     // Schema Properties
     let schemaProperties: Record<string, any> = {};

@@ -1,14 +1,10 @@
-export type ParameterSupportSchema = {
-  type: string;
-  enum: string[];
-};
-
 export type ParameterSupport = {
   name: string;
   in: string;
   required: boolean;
-  format?: string;
-  schema: ParameterSupportSchema;
+  format: string;
+  enum: string;
+  default: string;
 };
 
 export type RequestBodySupport = {
