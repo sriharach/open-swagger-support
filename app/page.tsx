@@ -151,7 +151,7 @@ export default function Home() {
                     return (
                       <Input
                         {...field}
-                        label="api path"
+                        label="Api path"
                         variant="bordered"
                         size="sm"
                       />

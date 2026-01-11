@@ -5,6 +5,7 @@ export type ParameterSupport = {
   format: string;
   enum: string;
   default: string;
+  radioKey?: string
 };
 
 export type RequestBodySupport = {

@@ -6,7 +6,9 @@
 @theme {
   --color-green-1: #2ca34c;
   --color-green-2: oklch(72.3% 0.219 149.579);
-  --color-green-3: oklch(52.7% 0.154 150.069)
+  --color-green-3: oklch(52.7% 0.154 150.069);
+  --color-green-4: #45E66F;
+  --color-green-5: #E6F2E8;
 }
 
 :root {

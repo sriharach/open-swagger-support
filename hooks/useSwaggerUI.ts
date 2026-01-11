@@ -95,7 +95,7 @@ const useSwaggerUI = () => {
     // Parameters
     const parameters = watchParameters.map<SwaggerParameterProperty>(
       (parameter) => {
-        const parameterEnum = parameter.enum
+        const parameterEnum = parameter?.enum
           .split(",")
           .map((item) => item.trim());
 
