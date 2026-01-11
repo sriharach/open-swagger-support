@@ -61,7 +61,6 @@ const useSwaggerUI = () => {
   const watchResponses = watch("responses");
 
   const getValueSchema = getValues("schema");
-  const getValuesResponse = getValues("responses");
 
   const parametersFieldArray = useFieldArray({
     control: control,
@@ -83,11 +82,12 @@ const useSwaggerUI = () => {
     name: "schema",
   });
 
-  useEffect(() => {
-    if (getValuesResponse.length < schemaFieldArray.fields.length) {
-      schemaFieldArray.remove(schemaFieldArray.fields.length - 1);
-    }
-  }, [getValuesResponse, schemaFieldArray]);
+  // handle state control fields
+  // useEffect(() => {
+  //   if (getValuesResponse.length < schemaFieldArray.fields.length) {
+  //     schemaFieldArray.remove(schemaFieldArray.fields.length - 1);
+  //   }
+  // }, [getValuesResponse, schemaFieldArray]);
 
   const generateOpenApiSpec = useMemo(() => {
     if (!watchApiPath || !watchApiName || !watchMethod) return undefined;
@@ -157,7 +157,7 @@ const useSwaggerUI = () => {
         },
       };
     }
-    
+
     // Request Body
     const nestedRequestBody = (
       _requestBodyElement: ComponentSupport[] = []
@@ -232,7 +232,7 @@ const useSwaggerUI = () => {
           return { ...acc, ...response };
         }, {}),
       initialResponse: {
-        $ref: `#/components/schemas/${watchResponses[0].name}`,
+        $ref: `#/components/schemas/${watchResponses[0]?.name}`,
       },
       resultErrorCodes: watchResponses.map((response) => response.codeResponse),
     };
@@ -355,7 +355,7 @@ const useSwaggerUI = () => {
                       },
                       type: {
                         type: "string",
-                        example: "info",
+                        example: "error",
                       },
                       message: {
                         type: "string",
@@ -456,8 +456,6 @@ const useSwaggerUI = () => {
     requestBodyFieldArray,
     responsesFieldArray,
     schemaFieldArray,
-    getValuesResponse,
-    getValueSchema,
     generateOpenApiSpec,
     handleGenerateYaml,
     onOpenChange,

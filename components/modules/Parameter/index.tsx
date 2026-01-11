@@ -1,5 +1,5 @@
 // libs
-import { Controller } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import {
   Button,
   Checkbox,
@@ -9,6 +9,7 @@ import {
   SelectItem,
   RadioGroup,
 } from "@heroui/react";
+import clsx from "clsx";
 
 // components
 import PlusIcon from "@/components/icons/PlusIcon";
@@ -18,9 +19,11 @@ import Radio from "@/components/Radio";
 
 // types
 import { ParameterProps } from "./type";
-import clsx from "clsx";
+import { OpenApiFormSupport } from "@/types/models/useForm-interface.model";
 
 const Parameter = ({ parametersFieldArray, formProvider }: ParameterProps) => {
+  const formContext = useFormContext<OpenApiFormSupport>();
+
   return (
     <div id="parameter" className="flex flex-col space-y-3">
       <div className="flex flex-row gap-3 items-center">
@@ -150,7 +153,7 @@ const Parameter = ({ parametersFieldArray, formProvider }: ParameterProps) => {
                       )}
                       onClick={() => {
                         field.onChange("1");
-                        formProvider.resetField(
+                        formContext.resetField(
                           `parameters.${index}.default` as never
                         );
                       }}
@@ -187,7 +190,7 @@ const Parameter = ({ parametersFieldArray, formProvider }: ParameterProps) => {
                       )}
                       onClick={() => {
                         field.onChange("2");
-                        formProvider.resetField(
+                        formContext.resetField(
                           `parameters.${index}.enum` as never
                         );
                       }}

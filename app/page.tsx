@@ -25,12 +25,11 @@ import useDragging from "@/hooks/useDragging";
 import useSwaggerUI from "@/hooks/useSwaggerUI";
 
 // components
-import PlusIcon from "@/components/icons/PlusIcon";
-import TrashIcon from "@/components/icons/TrashIcon";
-import NestedProperties from "@/components/modules/NestedComponent/NestedProperties";
 import CopyIcon from "@/components/icons/CopyIcon";
 import RequestBody from "@/components/modules/RequestBody";
 import Parameter from "@/components/modules/Parameter";
+import Response from "@/components/modules/Response";
+import Schema from "@/components/modules/Schema";
 
 export default function Home() {
   const {
@@ -39,7 +38,6 @@ export default function Home() {
     responsesFieldArray,
     requestBodyFieldArray,
     schemaFieldArray,
-    getValuesResponse,
     generateOpenApiSpec,
     yamlDump,
     isOpen,
@@ -82,7 +80,7 @@ export default function Home() {
 
       <FormProvider {...formProvider}>
         <div
-          className="grid"
+          className="grid h-full"
           style={{ gridTemplateColumns: `${swaggerWidth}px 2px 1fr` }}
         >
           <div
@@ -100,11 +98,8 @@ export default function Home() {
             onMouseDown={handleMouseDown}
           />
 
-          <div
-            id="api-path"
-            className="flex flex-col space-y-3 p-4 overflow-y-auto h-screen"
-          >
-            <div className="flex flex-col space-y-3">
+          <div className="flex flex-col space-y-3 p-4 overflow-y-auto h-screen">
+            <div id="api-path" className="flex flex-col space-y-3">
               <h2 className="font-bold text-2xl">Api path/name</h2>
               <Divider className="bg-green-1" />
               <Controller
@@ -174,215 +169,20 @@ export default function Home() {
             />
 
             {/* Response */}
-            <div id="response" className="flex flex-col space-y-3">
-              <div className="flex flex-row gap-3 items-center">
-                <h2 className="font-bold text-2xl w-42">Responses</h2>
-                <Button
-                  isIconOnly
-                  variant="light"
-                  size="sm"
-                  className="max-w-30"
-                  onPress={() =>
-                    responsesFieldArray.append({
-                      code: "",
-                      description: "",
-                      name: "",
-                      codeResponse: "",
-                      message: "",
-                    })
-                  }
-                >
-                  <PlusIcon />
-                </Button>
-              </div>
-
-              <Divider className="bg-green-1" />
-              {responsesFieldArray.fields.map((response, index) => {
-                return (
-                  <div
-                    key={response.id}
-                    className="flex flex-row gap-3 items-center"
-                  >
-                    <Controller
-                      control={formProvider.control}
-                      name={`responses.${index}.code` as never}
-                      render={({ field }) => {
-                        return (
-                          <div className="flex flex-row gap-3 items-center shrink">
-                            <Input
-                              {...field}
-                              label="Status code"
-                              variant="bordered"
-                              size="sm"
-                              className="max-w-40"
-                            />
-                            {String(field.value) >= "400" && (
-                              <Controller
-                                control={formProvider.control}
-                                name={`responses.${index}.message` as never}
-                                render={({ field }) => {
-                                  return (
-                                    <Input
-                                      {...field}
-                                      label="Message"
-                                      variant="bordered"
-                                      size="sm"
-                                      className="max-w-40"
-                                    />
-                                  );
-                                }}
-                              />
-                            )}
-                          </div>
-                        );
-                      }}
-                    />
-                    <Controller
-                      control={formProvider.control}
-                      name={`responses.${index}.name` as never}
-                      render={({ field }) => {
-                        return (
-                          <Input
-                            {...field}
-                            label="Name"
-                            variant="bordered"
-                            size="sm"
-                            className="max-w-40"
-                          />
-                        );
-                      }}
-                    />
-                    <Controller
-                      control={formProvider.control}
-                      name={`responses.${index}.description` as never}
-                      render={({ field }) => {
-                        return (
-                          <Input
-                            {...field}
-                            label="Description"
-                            variant="bordered"
-                            size="sm"
-                            className="max-w-40"
-                          />
-                        );
-                      }}
-                    />
-                    <Controller
-                      control={formProvider.control}
-                      name={`responses.${index}.codeResponse` as never}
-                      render={({ field }) => {
-                        return (
-                          <Input
-                            {...field}
-                            label="Code response"
-                            variant="bordered"
-                            size="sm"
-                            className="max-w-40"
-                          />
-                        );
-                      }}
-                    />
-                    <Button
-                      isIconOnly
-                      color="danger"
-                      size="sm"
-                      variant="light"
-                      onPress={() => responsesFieldArray.remove(index)}
-                    >
-                      <TrashIcon />
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
+            <Response
+              responsesFieldArray={responsesFieldArray}
+              formProvider={formProvider}
+            />
 
             {/* Schema */}
-            <div id="schema" className="flex flex-col space-y-3">
-              <div className="flex flex-row gap-3 items-center">
-                <h2 className="font-bold text-2xl w-42">Schema</h2>
-                <Button
-                  isIconOnly
-                  variant="light"
-                  size="sm"
-                  className="max-w-30"
-                  // isDisabled={
-                  //   schemaFieldArray.fields.length >= getValuesResponse.length
-                  // }
-                  isDisabled
-                  onPress={() =>
-                    schemaFieldArray.append({
-                      code: "",
-                      properties: [
-                        {
-                          key: "",
-                          format: "",
-                          properties: [],
-                          type: "string",
-                        },
-                      ],
-                    })
-                  }
-                >
-                  <PlusIcon />
-                </Button>
-              </div>
-              <Divider className="bg-green-1" />
-              {schemaFieldArray.fields.map((schema, index) => {
-                // Collect all selected codes except the current one
-                // Exclude the current schema's code from the selected codes
-                // const selectedCodes = schemaFieldArray.fields
-                //   .filter((_, i) => i !== index)
-                //   .map((s) => s.code);
-
-                // const availableResponses = getValuesResponse.filter(
-                //   (response) => !selectedCodes.includes(response.code)
-                // );
-                return (
-                  <div key={schema.id} className="flex flex-col space-y-4">
-                    <div className="flex flex-row gap-3 w-full items-center">
-                      <Controller
-                        control={formProvider.control}
-                        name={`schema.${index}.code` as never}
-                        render={({ field }) => {
-                          return (
-                            <Select
-                              isDisabled
-                              onSelectionChange={(value) =>
-                                field.onChange(value.currentKey)
-                              }
-                              selectedKeys={[field.value]}
-                              label="Code ref."
-                              className="max-w-32"
-                              variant="underlined"
-                            >
-                              {getValuesResponse.map((response) => (
-                                <SelectItem key={response.code}>
-                                  {response.code}
-                                </SelectItem>
-                              ))}
-                            </Select>
-                          );
-                        }}
-                      />
-                      {/* <Button
-                        isIconOnly
-                        color="danger"
-                        size="sm"
-                        variant="light"
-                        onPress={() => schemaFieldArray.remove(index)}
-                      >
-                        <TrashIcon />
-                      </Button> */}
-                    </div>
-                    {/* Properties Schema */}
-                    <NestedProperties
-                      control={formProvider.control}
-                      nestIndex={index}
-                    />
-                  </div>
-                );
-              })}
-              <Button onClick={handleGenerateYaml}>Generate yaml.</Button>
+            <Schema
+              schemaFieldArray={schemaFieldArray}
+              formProvider={formProvider}
+            />
+            <div className="flex-1">
+              <Button fullWidth onClick={handleGenerateYaml}>
+                Generate yaml.
+              </Button>
             </div>
           </div>
         </div>
