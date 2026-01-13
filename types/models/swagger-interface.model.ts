@@ -6,6 +6,7 @@ export interface SwaggerPropertyExample {
 export interface SwaggerPropertyObject {
   type: string;
   properties: Record<string, SwaggerPropertyExample>;
+  required?: string[];
 }
 
 export interface SwaggerPropertyArray {
@@ -19,6 +20,7 @@ export interface SwaggerInterface {
     string,
     SwaggerPropertyExample | SwaggerPropertyObject | SwaggerPropertyArray
   >;
+  required?: string[];
 }
 
 export type SwaggerRequestBodyProperty =
@@ -33,8 +35,17 @@ export interface SwaggerRequestBody {
     string,
     {
       schema: {
-        $ref: string;
+        title?: string;
+        oneOf?: Array<{ $ref: string }>;
+        $ref?: string;
       };
+      examples?: Record<
+        string,
+        {
+          summary: string;
+          value: any;
+        }
+      >;
     }
   >;
 }
@@ -55,6 +66,5 @@ export interface SwaggerParameterProperty {
   name: string;
   in: string;
   required: boolean;
-  schema: SwaggerParameterString | SwaggerParameterArray
+  schema: SwaggerParameterString | SwaggerParameterArray;
 }
-

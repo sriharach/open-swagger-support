@@ -41,9 +41,11 @@ const useSwaggerUI = () => {
           code: "200",
           properties: [
             {
-              key: "",
+              example: "",
               format: "",
-              properties: [],
+              isOpenChildren: false,
+              key: "",
+              type: "string",
             },
           ],
         },
@@ -60,7 +62,8 @@ const useSwaggerUI = () => {
   const watchRequestBody = watch("requestBody");
   const watchResponses = watch("responses");
 
-  const getValueSchema = getValues("schema");
+  const getValueSchema = watch("schema");
+  console.log("getValueSchema", getValueSchema);
 
   const parametersFieldArray = useFieldArray({
     control: control,
@@ -136,30 +139,102 @@ const useSwaggerUI = () => {
     let requestBody: Record<string, SwaggerRequestBody> = {};
     let properRequestBody: Record<string, SwaggerInterface> = {};
 
-    if (watchRequestBody.length > 0) {
+    // Handles nested request body generation for OpenAPI spec
+    const nestedRequestBody = (
+      _requestBodyElement: ComponentSupport[] = []
+    ): Record<string, any> => {
+      return _requestBodyElement
+        .map((proper): Record<string, any> => {
+          switch (proper.format) {
+            // If array items have properties, recursively process them
+            case "array":
+              return {
+                [proper.key]: proper.properties?.map((_proper) => {
+                  switch (_proper.format) {
+                    case "object":
+                    case "array":
+                      return {
+                        [_proper.key]: nestedRequestBody(_proper.properties),
+                      };
+
+                    default:
+                      return {
+                        [_proper.key]: _proper.example,
+                      };
+                  }
+                }),
+              };
+            case "object":
+              // Recursively process object properties
+              return {
+                [proper.key]: proper.properties
+                  ?.map((_proper) => nestedRequestBody(proper.properties))
+                  .reduce((acc, response) => {
+                    return { ...acc, ...response };
+                  }, {}),
+              };
+
+            default:
+              // Primitive value
+              return {
+                [proper.key]: proper.example,
+              };
+          }
+        })
+        .reduce((acc, response) => {
+          return { ...acc, ...response };
+        }, {});
+    };
+
+    if (watchRequestBody.length > 1) {
       requestBody = {
         requestBody: {
           description: "",
           required: watchRequestBody.some((reqBody) => reqBody.required),
-          content: watchRequestBody
-            .map((requestBodyElement) => {
-              return {
-                [requestBodyElement.name]: {
-                  schema: {
+          content: {
+            "application/json": {
+              schema: {
+                oneOf: watchRequestBody.map((requestBodyElement) => {
+                  return {
                     $ref: `#/components/schemas/${requestBodyElement.name}`,
-                  },
-                },
-              };
-            })
-            .reduce<SwaggerRequestBody["content"]>((acc, response) => {
-              return { ...acc, ...response };
-            }, {}),
+                  };
+                }),
+                title: watchRequestBody[0]?.name ?? "",
+              },
+              examples: watchRequestBody
+                .map((requestBodyElement) => {
+                  return {
+                    [requestBodyElement.name]: {
+                      summary: requestBodyElement.name,
+                      value: nestedRequestBody(requestBodyElement.properties),
+                    },
+                  };
+                })
+                .reduce((acc, response) => {
+                  return { ...acc, ...response };
+                }, {}),
+            },
+          },
+        },
+      };
+    } else if (watchRequestBody[0]) {
+      requestBody = {
+        requestBody: {
+          description: "",
+          required: watchRequestBody.some((reqBody) => reqBody.required),
+          content: {
+            "application/json": {
+              schema: {
+                $ref: `#/components/schemas/${watchRequestBody[0]?.name}`,
+              },
+            },
+          },
         },
       };
     }
 
-    // Request Body
-    const nestedRequestBody = (
+    // Request Body schema
+    const nestedSchemaBody = (
       _requestBodyElement: ComponentSupport[] = []
     ): Record<string, SwaggerRequestBodyProperty> => {
       return _requestBodyElement
@@ -169,7 +244,7 @@ const useSwaggerUI = () => {
               return {
                 [proper.key]: {
                   type: "object",
-                  properties: nestedRequestBody(proper.properties ?? []),
+                  properties: nestedSchemaBody(proper.properties ?? []),
                 },
               } as Record<string, SwaggerPropertyObject>;
             case "array":
@@ -178,7 +253,7 @@ const useSwaggerUI = () => {
                   type: "array",
                   items: {
                     type: "object",
-                    properties: nestedRequestBody(proper.properties ?? []),
+                    properties: nestedSchemaBody(proper.properties ?? []),
                   },
                 },
               } as unknown as Record<string, SwaggerPropertyArray>;
@@ -201,7 +276,7 @@ const useSwaggerUI = () => {
         return {
           [requestBodyElement.name]: {
             type: "object",
-            properties: nestedRequestBody(requestBodyElement.properties),
+            properties: nestedSchemaBody(requestBodyElement.properties),
           },
         };
       })
@@ -217,7 +292,7 @@ const useSwaggerUI = () => {
             [response.code]: {
               description: response.description,
               content: {
-                "*/*": {
+                "application/json": {
                   schema: {
                     $ref: `#/components/schemas/${
                       response.code >= "400" ? response.name : watchApiName
@@ -234,109 +309,93 @@ const useSwaggerUI = () => {
       initialResponse: {
         $ref: `#/components/schemas/${watchResponses[0]?.name}`,
       },
-      resultErrorCodes: watchResponses.map((response) => response.codeResponse),
     };
 
     // Schema Properties
-    let schemaProperties: Record<string, any> = {};
-    let _schemaProperties: Record<string, any> = {};
+    let schemaProperties: Record<string, SwaggerInterface> = {},
+      schemaKeysProperty = {};
+    const schemaKeysetProperties: Record<string, any>[] = [];
     let schemaErrorProperties: Record<string, any> = {};
-    if (getValueSchema.length > 0) {
-      const foundSchema = getValueSchema.filter((getValue) =>
-        watchResponses.some((response) => response.code === getValue.code)
-      );
 
-      schemaProperties = foundSchema
-        .map((proper) => {
-          const getNameResponse = watchResponses.find(
-            (resp) => resp.code === proper.code
-          );
-          return {
-            [getNameResponse?.name as never]: {
-              type: "object",
-              properties: proper.properties
-                .map((prop) => {
-                  switch (prop.format) {
-                    case "object":
-                    case "array":
-                      return {
-                        [prop.key]: {
-                          $ref: `#/components/schemas/${prop.subName}`,
-                        },
-                      };
+    const nestedSchemaProperty = (
+      schemas: ComponentSupport[] = []
+    ): Record<string, any> =>
+      schemas.reduce<Record<string, any>>((acc, proper) => {
+        let schema: Record<string, any>;
+        const objectRef = {
+          [proper.key]: { $ref: `#/components/schemas/${proper.subName}` },
+        };
 
-                    default:
-                      return {
-                        [prop.key]: {
-                          type: prop.type,
-                          example: prop.example,
-                        },
-                      };
-                  }
-                })
-                .reduce((acc: any, response) => {
-                  return { ...acc, ...response };
-                }, {}),
+        if (proper.format === "array") {
+          const arraySchema = {
+            [proper.key]: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: nestedSchemaProperty(proper.properties),
+              },
             },
           };
-        })
-        .reduce((acc, response) => {
-          return { ...acc, ...response };
-        }, {});
-
-      _schemaProperties = foundSchema
-        .flatMap((proper) => {
-          return proper.properties.map((prop) => {
-            switch (prop.format) {
-              case "array":
-                return {
-                  [prop.subName as never]: {
+          schemaKeysetProperties.push(
+            proper.subName
+              ? {
+                  [proper.subName]: {
                     type: "array",
                     items: {
                       type: "object",
-                      properties: (prop.properties ?? [])
-                        .map((subProp) => {
-                          return {
-                            [subProp.key]: {
-                              type: subProp.type,
-                              example: subProp.example,
-                            },
-                          };
-                        })
-                        .reduce((acc, response) => {
-                          return { ...acc, ...response };
-                        }, {}),
+                      properties: nestedSchemaProperty(proper.properties),
                     },
                   },
-                };
-              case "object":
-                return {
-                  [prop.subName as never]: {
+                }
+              : arraySchema
+          );
+          schema = proper.subName ? objectRef : arraySchema;
+        } else if (proper.format === "object") {
+          const objectSchema = {
+            [proper.key]: {
+              type: "object",
+              properties: nestedSchemaProperty(proper.properties),
+            },
+          };
+          schemaKeysetProperties.push(
+            proper.subName
+              ? {
+                  [proper.subName]: {
                     type: "object",
-                    properties: (prop.properties ?? [])
-                      .map((subProp) => {
-                        return {
-                          [subProp.key]: {
-                            type: subProp.type,
-                            example: subProp.example,
-                          },
-                        };
-                      })
-                      .reduce((acc, response) => {
-                        return { ...acc, ...response };
-                      }, {}),
+                    properties: nestedSchemaProperty(proper.properties),
                   },
-                };
+                }
+              : objectSchema
+          );
+          schema = proper.subName ? objectRef : objectSchema;
+        } else {
+          schema = {
+            [proper.key]: {
+              type: proper.type,
+              example: proper.example,
+            } as SwaggerPropertyExample,
+          };
+        }
 
-              default:
-                return {};
-            }
-          });
-        })
-        .filter(Boolean)
-        .reduce((acc: any, response) => {
-          return { ...acc, ...response };
-        }, {});
+        return { ...acc, ...schema };
+      }, {});
+
+    if (getValueSchema.length > 0) {
+      const foundSchema = getValueSchema.find((getValue) =>
+        watchResponses.some((response) => response.code === getValue.code)
+      );
+      if (!foundSchema) return;
+
+      schemaProperties = {
+        [watchResponses[0]?.name]: {
+          type: "object",
+          properties: nestedSchemaProperty(foundSchema.properties),
+        },
+      };
+      schemaKeysProperty = schemaKeysetProperties.reduce(
+        (acc, response) => ({ ...acc, ...response }),
+        {}
+      );
 
       const errorCase = watchResponses.filter((proper) => proper.code >= "400");
       if (errorCase) {
@@ -409,8 +468,8 @@ const useSwaggerUI = () => {
             },
           },
           ...schemaProperties,
+          ...schemaKeysProperty,
           ...properRequestBody,
-          ..._schemaProperties,
           ...schemaErrorProperties,
           statusResponse: {
             type: "object",

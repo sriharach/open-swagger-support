@@ -56,8 +56,8 @@ const Schema = ({ schemaFieldArray, formProvider }: SchemaProps) => {
       <Divider className="bg-green-1" />
       {schemaFieldArray.fields.map((schema, index) => {
         return (
-          <div key={schema.id} className="flex flex-col space-y-4">
-            <div className="flex flex-row gap-3 w-full items-center">
+          <div key={schema.id} className="flex flex-col gap-3 align-top">
+            <div className="flex flex-row gap-3 items-center flex-1">
               <Controller
                 control={formProvider.control}
                 name={`schema.${index}.code` as never}
@@ -77,8 +77,9 @@ const Schema = ({ schemaFieldArray, formProvider }: SchemaProps) => {
             </div>
             {/* Properties Schema */}
             <NestedProperties
+              title={getResponseValues[0]?.name}
               control={formProvider.control}
-              nestIndex={index}
+              keyField={`schema.${index}.properties` as never}
             />
           </div>
         );

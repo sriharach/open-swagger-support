@@ -1,6 +1,5 @@
 // libs
-import React from "react";
-import { Button, Divider, Input } from "@heroui/react";
+import { Button, Divider, Input, Select, SelectItem } from "@heroui/react";
 import { Controller } from "react-hook-form";
 
 // components
@@ -9,6 +8,7 @@ import TrashIcon from "@/components/icons/TrashIcon";
 
 // types
 import { ResponseProps } from "./type";
+import { HTTP_STATUS_CODES } from "@/constant/httpNetworkStatusCode";
 
 const Response = ({ formProvider, responsesFieldArray }: ResponseProps) => {
   return (
@@ -43,14 +43,24 @@ const Response = ({ formProvider, responsesFieldArray }: ResponseProps) => {
               name={`responses.${index}.code` as never}
               render={({ field }) => {
                 return (
-                  <div className="flex flex-row gap-3 items-center shrink">
-                    <Input
-                      {...field}
+                  <div className="flex flex-row gap-3 items-center w-full">
+                    <Select
+                      onSelectionChange={(value) =>
+                        field.onChange(value.currentKey)
+                      }
+                      selectedKeys={[field.value]}
                       label="Status code"
-                      variant="bordered"
-                      size="sm"
-                      className="max-w-40"
-                    />
+                      variant="underlined"
+                      fullWidth
+                    >
+                      {HTTP_STATUS_CODES.map((http) => {
+                        return (
+                          <SelectItem key={String(http.code)}>
+                            {`${http.code} ${http.message}`}
+                          </SelectItem>
+                        );
+                      })}
+                    </Select>
                     {Number(field.value) >= 400 && (
                       <Controller
                         control={formProvider.control}

@@ -1,26 +1,21 @@
 // libs
 import {
-  Control,
   Controller,
   useFieldArray,
   useFormContext,
 } from "react-hook-form";
 import clsx from "clsx";
 import { memo } from "react";
-import { Button, Input, Select, SelectItem } from "@heroui/react";
+import { Button, Checkbox, Input, Select, SelectItem } from "@heroui/react";
 
 // components
 import ArrowRightIcon from "@/components/icons/ArrowRightIcon";
 import PlusIcon from "@/components/icons/PlusIcon";
 import TrashIcon from "@/components/icons/TrashIcon";
 import { OpenApiFormSupport } from "@/types/models/useForm-interface.model";
+import ArrowUpSolid from "@/components/icons/ArrowUpSolid";
 
-interface NestedRequestBodyProps {
-  keyField: never;
-  control: Control<OpenApiFormSupport, any, OpenApiFormSupport>;
-  title: string;
-  level?: number;
-}
+import { NestedRequestBodyProps } from "./type";
 
 const NestedRequestBody = ({
   keyField,
@@ -30,7 +25,7 @@ const NestedRequestBody = ({
 }: NestedRequestBodyProps) => {
   const formContext = useFormContext<OpenApiFormSupport>();
 
-  const { fields, remove, append } = useFieldArray({
+  const { fields, remove, append, move } = useFieldArray({
     control,
     name: keyField,
   });
@@ -76,43 +71,71 @@ const NestedRequestBody = ({
               return (
                 <div
                   className={clsx("flex flex-col gap-1.5 ", {
-                    "border-b-1 border-green-1 pb-2":
+                    "border-b-2 border-dotted border-green-1 pb-2":
                       propertyIndex < fields.length - 1 && field.value !== "",
                   })}
                   style={{ marginLeft: level * 14 }}
                 >
                   <div className="flex flex-row gap-1.5 space-y-2 items-center">
-                    {field.value != "" && (
-                      <Controller
-                        control={control}
-                        name={`${codexName}.isOpenChildren` as never}
-                        render={({ field }) => {
-                          return (
-                            <i
-                              className={clsx("cursor-pointer transition-all", {
-                                "rotate-90 hover:-rotate-90": field.value,
-                                "-rotate-90 hover:rotate-90": !field.value,
-                              })}
-                            >
-                              <ArrowRightIcon
-                                onClick={() => field.onChange(!field.value)}
-                                className="size-5 text-green-1"
-                              />
-                            </i>
-                          );
-                        }}
-                      />
-                    )}
+                    <div className="flex flex-row gap-0.5 items-center">
+                      {field.value != "" && (
+                        <Controller
+                          control={control}
+                          name={`${codexName}.isOpenChildren` as never}
+                          render={({ field }) => {
+                            return (
+                              <i
+                                className={clsx(
+                                  "cursor-pointer transition-all",
+                                  {
+                                    "rotate-90 hover:-rotate-90": field.value,
+                                    "-rotate-90 hover:rotate-90": !field.value,
+                                  }
+                                )}
+                              >
+                                <ArrowRightIcon
+                                  onClick={() => field.onChange(!field.value)}
+                                  className="size-5 text-green-1"
+                                />
+                              </i>
+                            );
+                          }}
+                        />
+                      )}
 
-                    <Button
-                      isIconOnly
-                      color="danger"
-                      size="sm"
-                      variant="light"
-                      onPress={() => remove(propertyIndex)}
-                    >
-                      <TrashIcon />
-                    </Button>
+                      {fields.length > 1 && (
+                        <>
+                          <i
+                            className={clsx("cursor-pointer")}
+                            onClick={() => {
+                              if (propertyIndex === 0) return;
+                              move(propertyIndex, propertyIndex - 1);
+                            }}
+                          >
+                            <ArrowUpSolid className="size-5 text-green-1" />
+                          </i>
+                          <i
+                            className={clsx("cursor-pointer rotate-180")}
+                            onClick={() => {
+                              if (propertyIndex === fields.length - 1) return;
+                              move(propertyIndex, propertyIndex + 1);
+                            }}
+                          >
+                            <ArrowUpSolid className="size-5 text-green-1" />
+                          </i>
+                        </>
+                      )}
+
+                      <Button
+                        isIconOnly
+                        color="danger"
+                        size="sm"
+                        variant="light"
+                        onPress={() => remove(propertyIndex)}
+                      >
+                        <TrashIcon />
+                      </Button>
+                    </div>
 
                     <Select
                       onSelectionChange={(value) => {
@@ -193,6 +216,22 @@ const NestedRequestBody = ({
                         />
                       </>
                     )}
+                    {/* <Controller
+                      control={control}
+                      name={`${codexName}.required` as never}
+                      render={({ field }) => {
+                        return (
+                          <div className="text-center">
+                            <p className="text-xs font-medium">
+                              Required Field
+                            </p>
+                            <Checkbox
+                              onValueChange={(value) => field.onChange(value)}
+                            />
+                          </div>
+                        );
+                      }}
+                    /> */}
                   </div>
                   {field.value !== "" && getOpenChildren && (
                     <NestedRequestBody

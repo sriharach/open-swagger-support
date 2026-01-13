@@ -33,6 +33,7 @@ export type ComponentSupport = {
   enum?: Array<string | number>;
   example?: string | number | boolean;
   properties?: Array<ComponentSupport>;
+  required?: boolean
 };
 
 export type SchemaSupport = {
