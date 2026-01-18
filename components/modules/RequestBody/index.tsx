@@ -1,13 +1,17 @@
 // libs
 import { Button, Checkbox, Divider, Input } from "@heroui/react";
 import { Controller, useFormContext } from "react-hook-form";
+import clsx from "clsx";
 
 // components
 import PlusIcon from "@/components/icons/PlusIcon";
 import TrashIcon from "@/components/icons/TrashIcon";
-import NestedRequestBody from "../NestedComponent/NestedRequestBody";
+import NestedComponent from "../NestedComponent";
+
+// types
 import { RequestBodyProps } from "./type";
 import { OpenApiFormSupport } from "@/types/models/useForm-interface.model";
+
 
 const RequestBody = ({
   requestBodyFieldArray,
@@ -38,7 +42,13 @@ const RequestBody = ({
         <Divider className="bg-green-1" />
         {requestBodyFieldArray.fields.map((body, index) => {
           return (
-            <div key={body.id} className="flex flex-col gap-3 align-top">
+            <div
+              key={body.id}
+              className={clsx("flex flex-col gap-3 align-top", {
+                "border-b-2 border-dotted border-green-1 pb-2":
+                  index < requestBodyFieldArray.fields.length - 1,
+              })}
+            >
               <div className="flex flex-row gap-3 items-center flex-1">
                 <Controller
                   name={`requestBody.${index}.required` as never}
@@ -79,10 +89,25 @@ const RequestBody = ({
                   <TrashIcon />
                 </Button>
               </div>
-              <NestedRequestBody
-                title={formContext.watch(`requestBody.${index}.name`)}
-                control={formProvider.control}
-                keyField={`requestBody.${index}.properties` as never}
+              <NestedComponent
+                fieldProperties={{
+                  showSwapIcon: true,
+                  title: "Body Properties",
+                  keyTitle: formContext.watch(`requestBody.${index}.name`),
+                }}
+                formFieldArray={{
+                  control: formProvider.control,
+                  name: `requestBody.${index}.properties`,
+                }}
+                internalFuction={{
+                  appendField: {
+                    format: "",
+                    type: "string",
+                    key: "",
+                    example: "",
+                    isOpenChildren: true,
+                  },
+                }}
               />
             </div>
           );

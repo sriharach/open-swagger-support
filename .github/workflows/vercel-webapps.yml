@@ -2,7 +2,8 @@ name: Auto CI/CD Vercel
 
 on:
   push:
-    branches: [ main ] # ทำงานเมื่อ push เข้า main
+    # branches: [ main ] # ทำงานเมื่อ push เข้า main
+      tags: "M*"
 
 jobs:
   build-and-deploy:

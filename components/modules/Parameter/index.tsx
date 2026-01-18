@@ -5,6 +5,7 @@ import {
   Checkbox,
   Divider,
   Input,
+  Textarea,
   Select,
   SelectItem,
   RadioGroup,
@@ -35,12 +36,13 @@ const Parameter = ({ parametersFieldArray, formProvider }: ParameterProps) => {
           className="max-w-30"
           onPress={() =>
             parametersFieldArray.append({
-              name: "Parameter Name",
-              in: "query",
+              name: "",
+              in: "",
               required: false,
-              format: "string",
+              format: "",
               enum: "",
               default: "",
+              description: "",
             })
           }
         >
@@ -137,90 +139,107 @@ const Parameter = ({ parametersFieldArray, formProvider }: ParameterProps) => {
                 <TrashIcon />
               </Button>
             </div>
-            <Controller
-              control={formProvider.control}
-              name={`parameters.${index}.radioKey` as never}
-              render={({ field }) => {
-                return (
-                  <RadioGroup value={field.value}>
-                    <div
-                      className={clsx(
-                        "group inline-flex items-center cursor-pointer",
-                        "max-w-75 rounded-lg border-2",
-                        field.value === "1"
-                          ? "border-green-1 py-2"
-                          : "border-green-5"
-                      )}
-                      onClick={() => {
-                        field.onChange("1");
-                        formContext.resetField(
-                          `parameters.${index}.default` as never
-                        );
-                      }}
-                    >
-                      <Radio value="1" />
-                      <div className="flex flex-col gap-3">
-                        <strong className="text-sm">Add default</strong>
-                        {field.value == 1 && (
-                          <Controller
-                            name={`parameters.${index}.default` as never}
-                            control={formProvider.control}
-                            render={({ field }) => {
-                              return (
-                                <Input
-                                  {...field}
-                                  label="Default"
-                                  variant="bordered"
-                                  size="sm"
-                                  className="max-w-60"
-                                />
-                              );
-                            }}
-                          />
+            <div className="flex flex-row gap-3 items-start">
+              <Controller
+                name={`parameters.${index}.description` as never}
+                control={formProvider.control}
+                render={({ field }) => {
+                  return (
+                    <Textarea
+                      {...field}
+                      label="Description"
+                      variant="bordered"
+                      size="sm"
+                      className="max-w-60"
+                    />
+                  );
+                }}
+              />
+              <Controller
+                control={formProvider.control}
+                name={`parameters.${index}.radioKey` as never}
+                render={({ field }) => {
+                  return (
+                    <RadioGroup value={field.value}>
+                      <div
+                        className={clsx(
+                          "inline-flex items-center cursor-pointer w-full xl:w-75",
+                          "rounded-lg border-2",
+                          field.value === "1"
+                            ? "border-green-1 py-2"
+                            : "border-green-5"
                         )}
+                        onClick={() => {
+                          field.onChange("1");
+                          // formContext.resetField(
+                          //   `parameters.${index}.default` as never
+                          // );
+                        }}
+                      >
+                        <Radio value="1" itemScope={false}  />
+                        <div className="flex flex-col gap-3">
+                          <strong className="text-sm">Add default</strong>
+                          {field.value == 1 && (
+                            <Controller
+                              name={`parameters.${index}.default` as never}
+                              control={formProvider.control}
+                              render={({ field }) => {
+                                return (
+                                  <Input
+                                    {...field}
+                                    label="Default"
+                                    variant="bordered"
+                                    size="sm"
+                                    className="max-w-60"
+                                  />
+                                );
+                              }}
+                            />
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div
-                      className={clsx(
-                        "group inline-flex  items-center cursor-pointer",
-                        "max-w-75 rounded-lg border-2",
-                        field.value === "2"
-                          ? "border-green-1 py-2"
-                          : "border-green-5"
-                      )}
-                      onClick={() => {
-                        field.onChange("2");
-                        formContext.resetField(
-                          `parameters.${index}.enum` as never
-                        );
-                      }}
-                    >
-                      <Radio value="2" />
-                      <div className="flex flex-col gap-3">
-                        <strong className="text-sm">Add enum</strong>
-                        {field.value == 2 && (
-                          <Controller
-                            name={`parameters.${index}.enum` as never}
-                            control={formProvider.control}
-                            render={({ field }) => {
-                              return (
-                                <Input
-                                  {...field}
-                                  label="Enum (comma separated)"
-                                  variant="bordered"
-                                  size="sm"
-                                  className="max-w-60"
-                                />
-                              );
-                            }}
-                          />
+                      <div
+                        className={clsx(
+                          "inline-flex  items-center cursor-pointer w-full xl:w-75",
+                          "rounded-lg border-2",
+                          field.value === "2"
+                            ? "border-green-1 py-2"
+                            : "border-green-5"
                         )}
+                        onClick={() => {
+                          field.onChange("2");
+                          // formContext.resetField(
+                          //   `parameters.${index}.enum` as never
+                          // );
+                        }}
+                      >
+                        <Radio value="2" itemScope={false} />
+                        <div className="flex flex-col gap-3">
+                          <strong className="text-sm">Add enum</strong>
+                          {field.value == 2 && (
+                            <Controller
+                              name={`parameters.${index}.enum` as never}
+                              control={formProvider.control}
+                              render={({ field }) => {
+                                return (
+                                  <Input
+                                    {...field}
+                                    label="Enum (comma separated)"
+                                    variant="bordered"
+                                    size="sm"
+                                    className="max-w-60"
+                                  />
+                                );
+                              }}
+                            />
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </RadioGroup>
-                );
-              }}
-            />
+                    </RadioGroup>
+                  );
+                }}
+              />
+            </div>
           </div>
         );
       })}

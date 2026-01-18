@@ -1,3 +1,4 @@
+import {FieldPath} from 'react-hook-form'
 export type ParameterSupport = {
   name: string;
   in: string;
@@ -6,6 +7,7 @@ export type ParameterSupport = {
   enum: string;
   default: string;
   radioKey?: string
+  description?: string
 };
 
 export type RequestBodySupport = {
@@ -29,9 +31,9 @@ export type ComponentSupport = {
   subName?: string
   key: string;
   format: "array" | "object" | "";
-  type: "string" | "number" | "boolean";
+  type: "string" | "number" | "boolean" | 'date' | 'datetime';
   enum?: Array<string | number>;
-  example?: string | number | boolean;
+  example?: any;
   properties?: Array<ComponentSupport>;
   required?: boolean
 };
@@ -42,9 +44,11 @@ export type SchemaSupport = {
 };
 
 export type OpenApiFormSupport = {
-  name: string;
+  titleSwagger: string;
+  tagName: string
   apiPath: string;
   method: string;
+  baseSchemaName: string
   requestBody: Array<RequestBodySupport>
   parameters: Array<ParameterSupport>;
   responses: Array<ResponseSupport>;

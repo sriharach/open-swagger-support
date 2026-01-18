@@ -1,6 +1,9 @@
-import { SwaggerParameterArray, SwaggerParameterString } from "@/types/models/swagger-interface.model";
+export interface apiFormatSchema {
+  label: string;
+  value: string;
+}
 
-const apiTypes = [
+const apiTypes: apiFormatSchema[] = [
   {
     label: "Array",
     value: "array",
@@ -18,7 +21,7 @@ const apiTypes = [
     value: "query",
   },
 ];
-export const formatTypes = [
+export const formatTypes: apiFormatSchema[] = [
   {
     label: "String",
     value: "string",
@@ -31,25 +34,37 @@ export const formatTypes = [
     label: "Boolean",
     value: "boolean",
   },
+  {
+    label: "Date",
+    value: "date",
+  },
+  {
+    label: "Date/Time",
+    value: "datetime",
+  },
 ];
 
-const schemasType = {
-  array: {
-    type: "array",
-    items: {
-      type: "string",
-    },
+export const formatSchemasType: apiFormatSchema[] = [
+  {
+    label: "None",
+    value: "",
   },
-  query: {
-    type: "string",
+  {
+    label: "Object",
+    value: "object",
   },
-  header: {
-    type: "string",
+  {
+    label: "Array",
+    value: "array",
   },
-  path: {
-    type: "string",
+];
+
+export const formatSchemaValue: apiFormatSchema[] = [
+  {
+    label: "Value",
+    value: "value",
   },
-};
+];
 
 export type ApiTypes = typeof apiTypes;
 

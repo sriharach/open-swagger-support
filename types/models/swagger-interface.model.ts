@@ -1,6 +1,7 @@
 export interface SwaggerPropertyExample {
   type: string;
-  example: string;
+  example?: any;
+  format?: string
 }
 
 export interface SwaggerPropertyObject {
@@ -67,4 +68,5 @@ export interface SwaggerParameterProperty {
   in: string;
   required: boolean;
   schema: SwaggerParameterString | SwaggerParameterArray;
+  description?: string
 }

@@ -30,6 +30,7 @@ import RequestBody from "@/components/modules/RequestBody";
 import Parameter from "@/components/modules/Parameter";
 import Response from "@/components/modules/Response";
 import Schema from "@/components/modules/Schema";
+import SwaggerConfigPath from "@/components/modules/SwaggerConfigPath";
 
 export default function Home() {
   const {
@@ -99,62 +100,7 @@ export default function Home() {
           />
 
           <div className="flex flex-col space-y-3 p-4 overflow-y-auto h-screen">
-            <div id="api-path" className="flex flex-col space-y-3">
-              <h2 className="font-bold text-2xl">Api path/name</h2>
-              <Divider className="bg-green-1" />
-              <Controller
-                control={formProvider.control}
-                name="name"
-                render={({ field }) => {
-                  return (
-                    <Input
-                      {...field}
-                      label="Name"
-                      variant="bordered"
-                      size="sm"
-                    />
-                  );
-                }}
-              />
-
-              <div className="flex justify-between gap-3">
-                <Controller
-                  control={formProvider.control}
-                  name="method"
-                  render={({ field }) => {
-                    return (
-                      <Select
-                        onSelectionChange={(value) =>
-                          field.onChange(value.currentKey)
-                        }
-                        selectedKeys={[field.value]}
-                        label="Method"
-                        className="max-w-32"
-                        variant="underlined"
-                      >
-                        {apiQuality.map((api) => (
-                          <SelectItem key={api.path}>{api.name}</SelectItem>
-                        ))}
-                      </Select>
-                    );
-                  }}
-                />
-                <Controller
-                  control={formProvider.control}
-                  name="apiPath"
-                  render={({ field }) => {
-                    return (
-                      <Input
-                        {...field}
-                        label="Api path"
-                        variant="bordered"
-                        size="sm"
-                      />
-                    );
-                  }}
-                />
-              </div>
-            </div>
+            <SwaggerConfigPath formProvider={formProvider} />
 
             {/* Request Body */}
             <RequestBody

@@ -9,6 +9,7 @@ import NestedProperties from "../NestedComponent/NestedProperties";
 // types
 import { SchemaProps } from "./type";
 import { OpenApiFormSupport } from "@/types/models/useForm-interface.model";
+import NestedComponent from "../NestedComponent";
 
 const Schema = ({ schemaFieldArray, formProvider }: SchemaProps) => {
   const getResponseValues = useWatch({
@@ -21,7 +22,7 @@ const Schema = ({ schemaFieldArray, formProvider }: SchemaProps) => {
     if (getResponseValues.length > 0) {
       formContext.setValue(
         `schema.0.code` as never,
-        getResponseValues[0].code as never
+        getResponseValues[0].code as never,
       );
     }
   }, [getResponseValues]);
@@ -76,10 +77,25 @@ const Schema = ({ schemaFieldArray, formProvider }: SchemaProps) => {
               />
             </div>
             {/* Properties Schema */}
-            <NestedProperties
-              title={getResponseValues[0]?.name}
-              control={formProvider.control}
-              keyField={`schema.${index}.properties` as never}
+            <NestedComponent
+              formFieldArray={{
+                control: formProvider.control,
+                name: `schema.${index}.properties`,
+              }}
+              fieldProperties={{
+                title: "Schema Properties",
+                keyTitle: getResponseValues[0]?.name,
+                showSubName: true
+              }}
+              internalFuction={{
+                appendField: {
+                  format: "",
+                  type: "string",
+                  key: "",
+                  example: "",
+                  isOpenChildren: true,
+                },
+              }}
             />
           </div>
         );
