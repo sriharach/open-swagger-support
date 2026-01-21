@@ -48,6 +48,13 @@ export const HTTP_STATUS_CODES: NetworkStatus[] = [
       "Authentication is required and has failed or has not yet been provided.",
   },
   {
+    code: 402,
+    message: "Payment Required",
+    category: "Client Error",
+    description:
+      "Authentication is required and has failed or has not yet been provided.",
+  },
+  {
     code: 403,
     message: "Forbidden",
     category: "Client Error",

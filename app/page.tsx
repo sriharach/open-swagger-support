@@ -2,23 +2,17 @@
 
 // libs
 import {
-  Input,
-  Select,
-  SelectItem,
   Divider,
   Button,
-  Checkbox,
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerBody,
+  Textarea,
 } from "@heroui/react";
-import { FormProvider, Controller } from "react-hook-form";
+import { FormProvider } from "react-hook-form";
 import MemoSwagger from "@/components/modules/MemoSwagger";
 import "swagger-ui-react/swagger-ui.css";
-
-// configs
-import apiQuality from "@/constant/api-quality";
 
 // hooks
 import useDragging from "@/hooks/useDragging";
@@ -41,9 +35,13 @@ export default function Home() {
     schemaFieldArray,
     generateOpenApiSpec,
     yamlDump,
+    stringJson,
     isOpen,
+    modeOfDrawer,
     onOpenChange,
-    handleGenerateYaml,
+    onGenerateYaml,
+    onImportYaml,
+    onSetTextYaml,
   } = useSwaggerUI();
 
   const { swaggerWidth, handleMouseDown } = useDragging();
@@ -54,25 +52,47 @@ export default function Home() {
         <DrawerContent>
           {() => (
             <>
-              <DrawerHeader className="flex flex-col gap-1">Yaml.</DrawerHeader>
+              <DrawerHeader className="flex flex-col gap-1">
+                {modeOfDrawer === "generate" ? "Yaml." : "Import yaml."}
+              </DrawerHeader>
               <DrawerBody>
-                <div className="flex items-center mb-2">
-                  <Button
-                    size="sm"
-                    isIconOnly
-                    variant="solid"
-                    onPress={() => {
-                      if (yamlDump) {
-                        navigator.clipboard.writeText(yamlDump);
-                      }
-                    }}
-                  >
-                    <CopyIcon />
-                  </Button>
-                </div>
-                <pre className="whitespace-pre-wrap break-all bg-[#262b36] text-white p-4 rounded-xl">
-                  {yamlDump}
-                </pre>
+                {modeOfDrawer === "generate" ? (
+                  <div className="flex-1 relative">
+                    <pre role='textbox' className="group min-h-22 whitespace-pre-wrap break-all bg-[#262b36] text-white p-4 rounded-xl">
+                      <div className="absolute hidden group-hover:block group-hover:top-2 group-hover:right-2">
+                        <Button
+                          size="sm"
+                          isIconOnly
+                          color="primary"
+                          variant="ghost"
+                          onPress={() => {
+                            if (yamlDump) {
+                              navigator.clipboard.writeText(yamlDump);
+                            }
+                          }}
+                        >
+                          <CopyIcon />
+                        </Button>
+                      </div>
+                      {yamlDump}
+                    </pre>
+                  </div>
+                ) : (
+                  <>
+                    <Textarea
+                      rows={60}
+                      maxRows={30}
+                      value={stringJson}
+                      onValueChange={onSetTextYaml}
+                      classNames={{
+                        inputWrapper:
+                          "bg-[#262b36] data-[hover=true]:bg-[#262b36] group-data-[focus=true]:bg-[#262b36]",
+                        innerWrapper: "bg-[#262b36]",
+                        input: "text-md whitespace-pre-wrap",
+                      }}
+                    />
+                  </>
+                )}
               </DrawerBody>
             </>
           )}
@@ -125,8 +145,17 @@ export default function Home() {
               schemaFieldArray={schemaFieldArray}
               formProvider={formProvider}
             />
-            <div className="flex-1">
-              <Button fullWidth onClick={handleGenerateYaml}>
+            <Divider className="bg-green-1 my-6" />
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant="ghost"
+                color="primary"
+                fullWidth
+                onClick={onImportYaml}
+              >
+                Import swagger yaml.
+              </Button>
+              <Button fullWidth color="primary" onClick={onGenerateYaml}>
                 Generate yaml.
               </Button>
             </div>

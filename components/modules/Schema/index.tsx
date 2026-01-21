@@ -4,12 +4,12 @@ import { Controller, useWatch, useFormContext } from "react-hook-form";
 import { useEffect } from "react";
 
 // components
-import NestedProperties from "../NestedComponent/NestedProperties";
+import NestedComponent from "../NestedComponent";
 
 // types
 import { SchemaProps } from "./type";
 import { OpenApiFormSupport } from "@/types/models/useForm-interface.model";
-import NestedComponent from "../NestedComponent";
+
 
 const Schema = ({ schemaFieldArray, formProvider }: SchemaProps) => {
   const getResponseValues = useWatch({

@@ -21,18 +21,24 @@ import {
   SwaggerRequestBody,
   SwaggerRequestBodyProperty,
 } from "@/types/models/swagger-interface.model";
+import useSetSwagger from "./useSetSwagger";
+import { HTTP_STATUS_CODES } from "@/constant/httpNetworkStatusCode";
 
 const useSwaggerUI = () => {
   const [yamlDump, setYamlDump] = useState<string>("");
+  const [stringJson, setStringJson] = useState("");
+  const [modeOfDrawer, setModeOfDrawer] = useState<"generate" | "import" | "">(
+    "",
+  );
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const formProvider = useForm<UseFormOpenApi>({
+    mode: "all",
     defaultValues: {
-      // apiPath: '/api',
-      titleSwagger: 'Swagger Support',
-      tagName: 'Swagger Generator',
-      baseSchemaName: 'MainPointApi',
-      method: 'get',
+      titleSwagger: "Swagger Support",
+      tagName: "Swagger Generator",
+      baseSchemaName: "MainPointApi",
+      method: "get",
       responses: [
         {
           code: "200",
@@ -58,13 +64,16 @@ const useSwaggerUI = () => {
     },
   });
 
-  const { control, watch } = formProvider;
+  // feature import convert input swagger
+  useSetSwagger(formProvider, stringJson);
+
+  const { control, watch, setValue } = formProvider;
 
   const watchApiPath = watch("apiPath");
   const watchMethod = watch("method");
-  const watchTitle = watch('titleSwagger');
-  const watchTagName = watch('tagName')
-  const watchBaseSchemaName = watch('baseSchemaName')
+  const watchTitle = watch("titleSwagger");
+  const watchTagName = watch("tagName");
+  const watchBaseSchemaName = watch("baseSchemaName");
   const watchParameters = watch("parameters");
   const watchRequestBody = watch("requestBody");
   const watchResponses = watch("responses");
@@ -78,7 +87,7 @@ const useSwaggerUI = () => {
 
   const requestBodyFieldArray = useFieldArray({
     control: control,
-    name: 'requestBody',
+    name: "requestBody",
   });
 
   const responsesFieldArray = useFieldArray({
@@ -139,9 +148,8 @@ const useSwaggerUI = () => {
           description: parameter.description,
           explode: true,
         };
-      }
+      },
     );
-    console.log("parameters", parameters);
 
     // Request Body
     let requestBody: Record<string, SwaggerRequestBody> = {};
@@ -149,7 +157,7 @@ const useSwaggerUI = () => {
 
     // Handles nested request body generation for OpenAPI spec
     const nestedRequestBody = (
-      _requestBodyElement: ComponentSupport[] = []
+      _requestBodyElement: ComponentSupport[] = [],
     ): Record<string, any> =>
       _requestBodyElement.reduce((acc, proper) => {
         let requestBodyProperty: Record<string, any>;
@@ -170,7 +178,7 @@ const useSwaggerUI = () => {
               }
               return { ...acc, ...childProper };
             },
-            {}
+            {},
           );
           requestBodyProperty = {
             [proper.key]: [resultProper],
@@ -183,7 +191,7 @@ const useSwaggerUI = () => {
                 ...acc,
                 ...nestedRequestBody(proper.properties),
               }),
-              {}
+              {},
             ),
           };
         } else {
@@ -242,7 +250,7 @@ const useSwaggerUI = () => {
 
     // Request Body schema
     const nestedSchemaBody = (
-      _requestBodyElement: ComponentSupport[] = []
+      _requestBodyElement: ComponentSupport[] = [],
     ): Record<string, SwaggerRequestBodyProperty> => {
       return _requestBodyElement.reduce<
         Record<string, SwaggerRequestBodyProperty>
@@ -322,7 +330,7 @@ const useSwaggerUI = () => {
     let schemaErrorProperties: Record<string, any> = {};
 
     const nestedSchemaProperty = (
-      schemas: ComponentSupport[] = []
+      schemas: ComponentSupport[] = [],
     ): Record<string, any> =>
       schemas.reduce<Record<string, any>>((acc, proper) => {
         let schema: Record<string, any>;
@@ -351,7 +359,7 @@ const useSwaggerUI = () => {
                     },
                   },
                 }
-              : arraySchema
+              : arraySchema,
           );
           schema = proper.subName ? objectRef : arraySchema;
         } else if (proper.format === "object") {
@@ -369,7 +377,7 @@ const useSwaggerUI = () => {
                     properties: nestedSchemaProperty(proper.properties),
                   },
                 }
-              : objectSchema
+              : objectSchema,
           );
           schema = proper.subName ? objectRef : objectSchema;
         } else {
@@ -402,7 +410,7 @@ const useSwaggerUI = () => {
 
     if (getValueSchema.length > 0) {
       const foundSchema = getValueSchema.find((getValue) =>
-        watchResponses.some((response) => response.code === getValue.code)
+        watchResponses.some((response) => response.code === getValue.code),
       );
       if (!foundSchema) return;
 
@@ -414,7 +422,7 @@ const useSwaggerUI = () => {
       };
       schemaKeysProperty = schemaKeysetProperties.reduce(
         (acc, response) => ({ ...acc, ...response }),
-        {}
+        {},
       );
 
       // error case
@@ -523,15 +531,25 @@ const useSwaggerUI = () => {
     getValueSchema,
     watchRequestBody,
   ]);
+
+  const onSetTextYaml = (yaml: string) => setStringJson(yaml);
+
   // YAML generation and drawer open
-  const handleGenerateYaml = () => {
+  const onGenerateYaml = () => {
     const yamlDump = yaml.dump(generateOpenApiSpec);
-    setYamlDump(yamlDump);
     onOpen();
+    setYamlDump(yamlDump);
+    setModeOfDrawer("generate");
+  };
+
+  const onImportYaml = () => {
+    onOpen();
+    setModeOfDrawer("import");
   };
 
   return {
     yamlDump,
+    stringJson,
     isOpen,
     formProvider,
     parametersFieldArray,
@@ -539,8 +557,11 @@ const useSwaggerUI = () => {
     responsesFieldArray,
     schemaFieldArray,
     generateOpenApiSpec,
-    handleGenerateYaml,
+    modeOfDrawer,
+    onGenerateYaml,
+    onImportYaml,
     onOpenChange,
+    onSetTextYaml,
   };
 };
 
