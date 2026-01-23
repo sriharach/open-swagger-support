@@ -1,31 +1,70 @@
-const apiTypes = ["array", "path", "query", "header"];
-export const formatTypes = ["string", "number", "boolean"];
+export interface apiFormatSchema {
+  label: string;
+  value: string;
+}
 
-const schemasType = {
-  array: {
-    type: "array",
-    items: {
-      type: "string",
-    },
+const apiTypes: apiFormatSchema[] = [
+  {
+    label: "Array",
+    value: "array",
   },
-  query: {
-    type: "string",
+  {
+    label: "Header",
+    value: "header",
   },
-  header: {
-    type: "string",
+  {
+    label: "Path",
+    value: "path",
   },
-  path: {
-    type: "string",
+  {
+    label: "Query",
+    value: "query",
   },
-};
+];
+export const formatTypes: apiFormatSchema[] = [
+  {
+    label: "String",
+    value: "string",
+  },
+  {
+    label: "Number",
+    value: "number",
+  },
+  {
+    label: "Boolean",
+    value: "boolean",
+  },
+  {
+    label: "Date",
+    value: "date",
+  },
+  {
+    label: "Date/Time",
+    value: "datetime",
+  },
+];
 
-export const mapSchemaTypes = (
-  arg: keyof typeof schemasType,
-  formatType: typeof formatTypes
-) =>
-  arg === "array"
-    ? { ...schemasType[arg], items: { type: formatType ?? 'string' } }
-    : { ...schemasType[arg], type: formatType ?? "string" };
+export const formatSchemasType: apiFormatSchema[] = [
+  {
+    label: "None",
+    value: "",
+  },
+  {
+    label: "Object",
+    value: "object",
+  },
+  {
+    label: "Array",
+    value: "array",
+  },
+];
+
+export const formatSchemaValue: apiFormatSchema[] = [
+  {
+    label: "Value",
+    value: "value",
+  },
+];
 
 export type ApiTypes = typeof apiTypes;
 

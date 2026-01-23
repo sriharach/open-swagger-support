@@ -1,8 +1,11 @@
-const PlusIcon = () => {
+import { SVGProps } from "react";
+
+const PlusIcon = (props: SVGProps<SVGSVGElement>) => {
   return (
     <svg
-      width={40}
-      height={40}
+      {...props}
+      width={props.width || "24"}
+      height={props.height || "24"}
       xmlns="http://www.w3.org/2000/svg"
       x="0px"
       y="0px"

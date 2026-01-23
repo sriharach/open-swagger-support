@@ -1,14 +1,12 @@
-export type ParameterSupportSchema = {
-  type: string;
-  enum: string[];
-};
-
 export type ParameterSupport = {
   name: string;
   in: string;
   required: boolean;
-  format?: string;
-  schema: ParameterSupportSchema;
+  format: string;
+  enum: string;
+  default: string;
+  radioKey?: string;
+  description?: string;
 };
 
 export type RequestBodySupport = {
@@ -16,7 +14,7 @@ export type RequestBodySupport = {
   required?: boolean;
   name: string;
   properties: Array<ComponentSupport>;
-}
+};
 
 export type ResponseSupport = {
   code: string;
@@ -26,14 +24,17 @@ export type ResponseSupport = {
   description: string;
 };
 export type ComponentSupport = {
+  isOpenChildren?: boolean;
+  level?: number;
   id?: string;
-  subName?: string
+  subName?: string;
   key: string;
   format: "array" | "object" | "";
-  type: "string" | "number" | "boolean";
+  type: "string" | "number" | "boolean" | "date" | "datetime";
   enum?: Array<string | number>;
-  example?: string | number | boolean;
+  example?: any;
   properties?: Array<ComponentSupport>;
+  required?: boolean;
 };
 
 export type SchemaSupport = {
@@ -42,10 +43,12 @@ export type SchemaSupport = {
 };
 
 export type OpenApiFormSupport = {
-  name: string;
+  titleSwagger: string;
+  tagName: string;
   apiPath: string;
   method: string;
-  requestBody: Array<RequestBodySupport>
+  baseSchemaName: string;
+  requestBody: Array<RequestBodySupport>;
   parameters: Array<ParameterSupport>;
   responses: Array<ResponseSupport>;
   schema: Array<SchemaSupport>;

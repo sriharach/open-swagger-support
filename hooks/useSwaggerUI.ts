@@ -1,14 +1,44 @@
 // libs
 import { useFieldArray, useForm } from "react-hook-form";
+import yaml from "js-yaml";
+import { useDisclosure } from "@heroui/react";
+import { useEffect, useMemo, useState } from "react";
 
 // types
-import { type UseFormOpenApi } from "@/types/models/useForm";
-import { useEffect, useMemo } from "react";
-import { mapSchemaTypes } from "@/constant/api-type";
+import {
+  ComponentSupport,
+  UseFormOpenApi,
+} from "@/types/models/useForm-interface.model";
+
+import {
+  SwaggerInterface,
+  SwaggerParameterArray,
+  SwaggerParameterProperty,
+  SwaggerParameterString,
+  SwaggerPropertyArray,
+  SwaggerPropertyExample,
+  SwaggerPropertyObject,
+  SwaggerRequestBody,
+  SwaggerRequestBodyProperty,
+} from "@/types/models/swagger-interface.model";
+import useSetSwagger from "./useSetSwagger";
+import { HTTP_STATUS_CODES } from "@/constant/httpNetworkStatusCode";
 
 const useSwaggerUI = () => {
+  const [yamlDump, setYamlDump] = useState<string>("");
+  const [stringJson, setStringJson] = useState("");
+  const [modeOfDrawer, setModeOfDrawer] = useState<"generate" | "import" | "">(
+    "",
+  );
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
   const formProvider = useForm<UseFormOpenApi>({
+    mode: "all",
     defaultValues: {
+      titleSwagger: "Swagger Support",
+      tagName: "Swagger Generator",
+      baseSchemaName: "MainPointApi",
+      method: "get",
       responses: [
         {
           code: "200",
@@ -22,9 +52,11 @@ const useSwaggerUI = () => {
           code: "200",
           properties: [
             {
-              key: "",
+              example: "hello",
               format: "",
-              properties: [],
+              isOpenChildren: false,
+              key: "hello",
+              type: "string",
             },
           ],
         },
@@ -32,17 +64,21 @@ const useSwaggerUI = () => {
     },
   });
 
-  const { control, getValues, watch } = formProvider;
+  // feature import convert input swagger
+  useSetSwagger(formProvider, stringJson);
+
+  const { control, watch, setValue } = formProvider;
 
   const watchApiPath = watch("apiPath");
   const watchMethod = watch("method");
-  const watchApiName = watch("name");
+  const watchTitle = watch("titleSwagger");
+  const watchTagName = watch("tagName");
+  const watchBaseSchemaName = watch("baseSchemaName");
   const watchParameters = watch("parameters");
   const watchRequestBody = watch("requestBody");
   const watchResponses = watch("responses");
 
-  const getValueSchema = getValues("schema");
-  const getValuesResponse = getValues("responses");
+  const getValueSchema = watch("schema");
 
   const parametersFieldArray = useFieldArray({
     control: control,
@@ -64,245 +100,384 @@ const useSwaggerUI = () => {
     name: "schema",
   });
 
-  useEffect(() => {
-    if (getValuesResponse.length < schemaFieldArray.fields.length) {
-      schemaFieldArray.remove(schemaFieldArray.fields.length - 1);
-    }
-  }, [getValuesResponse, schemaFieldArray]);
+  // handle state control fields
+  // useEffect(() => {
+  //   if (getValuesResponse.length < schemaFieldArray.fields.length) {
+  //     schemaFieldArray.remove(schemaFieldArray.fields.length - 1);
+  //   }
+  // }, [getValuesResponse, schemaFieldArray]);
 
   const generateOpenApiSpec = useMemo(() => {
-    if (!watchApiPath || !watchApiName || !watchMethod) return undefined;
+    if (!watchApiPath || !watchMethod || !watchBaseSchemaName) return undefined;
 
-    const parameters = watchParameters.map((parameter) => {
-      return {
-        name: parameter.name,
-        in: parameter.in,
-        required: parameter.required,
-        schema: mapSchemaTypes(
-          parameter.in as keyof typeof mapSchemaTypes,
-          parameter.format as never
-        ),
-      };
-    });
-    // Responses
-    const responsesCocoon = {
-      resultResponse: watchResponses
-        .map((response) => {
-          return {
-            [response.code]: {
-              description: response.description,
-              content: {
-                "*/*": {
-                  schema: {
-                    $ref: `#/components/schemas/${
-                      response.code >= "400" ? response.name : watchApiName
-                    }`,
-                  },
-                },
-              },
+    // Parameters
+    const parameters = watchParameters.map<SwaggerParameterProperty>(
+      (parameter) => {
+        const parameterEnum = parameter?.enum
+          ? parameter.enum.split(",").map((item) => item.trim())
+          : [];
+
+        let resultParameterSchema:
+          | SwaggerParameterArray
+          | SwaggerParameterString = {
+          type: "string",
+          default: parameter.default,
+        };
+
+        if (parameterEnum.length > 0 && parameterEnum[0] !== "") {
+          resultParameterSchema = {
+            ...resultParameterSchema,
+            default: parameterEnum ? parameterEnum[0] : "",
+            enum: parameterEnum ? parameterEnum : [],
+          };
+        }
+
+        if (parameter.in === "array") {
+          resultParameterSchema = {
+            type: "array",
+            items: {
+              type: parameter.format || "string",
             },
           };
-        })
-        .reduce((acc, response) => {
-          return { ...acc, ...response };
-        }, {}),
-      initialResponse: {
-        $ref: `#/components/schemas/${watchResponses[0].name}`,
+        }
+        return {
+          in: parameter.in,
+          name: parameter.name,
+          required: parameter.required,
+          schema: resultParameterSchema,
+          description: parameter.description,
+          explode: true,
+        };
       },
-      resultErrorCodes: watchResponses.map((response) => response.codeResponse),
-    };
+    );
 
     // Request Body
-    let requestBody: Record<string, any> = {};
-    let properRequestBody: Record<string, any> = {};
-    const requestBodyElement = watchRequestBody[0];
-    if (requestBodyElement) {
+    let requestBody: Record<string, SwaggerRequestBody> = {};
+    let properRequestBody: Record<string, SwaggerInterface> = {};
+
+    // Handles nested request body generation for OpenAPI spec
+    const nestedRequestBody = (
+      _requestBodyElement: ComponentSupport[] = [],
+    ): Record<string, any> =>
+      _requestBodyElement.reduce((acc, proper) => {
+        let requestBodyProperty: Record<string, any>;
+
+        if (proper.format === "array") {
+          // If array items have properties, recursively process them
+          const resultProper = (proper.properties ?? []).reduce(
+            (acc, _proper) => {
+              let childProper: Record<string, any>;
+              if (_proper.format === "object" || _proper.format === "array") {
+                childProper = {
+                  [_proper.key]: nestedRequestBody(_proper.properties),
+                };
+              } else {
+                childProper = {
+                  [_proper.key]: _proper.example,
+                };
+              }
+              return { ...acc, ...childProper };
+            },
+            {},
+          );
+          requestBodyProperty = {
+            [proper.key]: [resultProper],
+          };
+        } else if (proper.format === "object") {
+          // Recursively process object properties
+          requestBodyProperty = {
+            [proper.key]: (proper.properties ?? []).reduce(
+              (acc) => ({
+                ...acc,
+                ...nestedRequestBody(proper.properties),
+              }),
+              {},
+            ),
+          };
+        } else {
+          // Primitive value
+          requestBodyProperty = {
+            [proper.key]: proper.example,
+          };
+        }
+
+        return { ...acc, ...requestBodyProperty };
+      }, {});
+
+    if (watchRequestBody.length > 1) {
       requestBody = {
         requestBody: {
-          description: requestBodyElement.description || "",
+          description: "",
+          required: watchRequestBody.some((reqBody) => reqBody.required),
           content: {
-            "*/*": {
+            "application/json": {
               schema: {
-                $ref: `#/components/schemas/${requestBodyElement.name}`,
+                oneOf: watchRequestBody.map((requestBodyElement) => {
+                  return {
+                    $ref: `#/components/schemas/${requestBodyElement.name}`,
+                  };
+                }),
+                title: watchRequestBody[0]?.name ?? "",
+              },
+              examples: watchRequestBody.reduce((acc, response) => {
+                let requestBodyElement = {
+                  [response.name]: {
+                    summary: response.name,
+                    value: nestedRequestBody(response.properties),
+                  },
+                };
+                return { ...acc, ...requestBodyElement };
+              }, {}),
+            },
+          },
+        },
+      };
+    } else if (watchRequestBody[0]) {
+      requestBody = {
+        requestBody: {
+          description: "",
+          required: watchRequestBody.some((reqBody) => reqBody.required),
+          content: {
+            "application/json": {
+              schema: {
+                $ref: `#/components/schemas/${watchRequestBody[0]?.name}`,
               },
             },
           },
-          required: requestBodyElement.required || false,
-        },
-      };
-
-      properRequestBody = {
-        [requestBodyElement.name]: {
-          type: "object",
-          properties: (requestBodyElement.properties ?? [])
-            .map((proper) => {
-              return {
-                [proper.key]: {
-                  type: proper.type,
-                  example: proper.example,
-                },
-              };
-            })
-            .reduce((acc, response) => {
-              return { ...acc, ...response };
-            }, {}),
         },
       };
     }
 
-    // Schema Properties
-    let schemaProperties: Record<string, any> = {};
-    let _schemaProperties: Record<string, any> = {};
-    let schemaErrorProperties: Record<string, any> = {};
-    if (getValueSchema.length > 0) {
-      const foundSchema = getValueSchema.filter((getValue) =>
-        watchResponses.some((response) => response.code === getValue.code)
-      );
-
-      schemaProperties = foundSchema
-        .map((proper) => {
-          const getNameResponse = watchResponses.find(
-            (resp) => resp.code === proper.code
-          );
-          return {
-            [getNameResponse?.name as never]: {
+    // Request Body schema
+    const nestedSchemaBody = (
+      _requestBodyElement: ComponentSupport[] = [],
+    ): Record<string, SwaggerRequestBodyProperty> => {
+      return _requestBodyElement.reduce<
+        Record<string, SwaggerRequestBodyProperty>
+      >((acc, proper) => {
+        let schemaBodyElement: Record<string, SwaggerRequestBodyProperty>;
+        if (proper.format === "object") {
+          schemaBodyElement = {
+            [proper.key]: {
               type: "object",
-              properties: proper.properties
-                .map((prop) => {
-                  switch (prop.format) {
-                    case "object":
-                    case "array":
-                      return {
-                        [prop.key]: {
-                          $ref: `#/components/schemas/${prop.subName}`,
-                        },
-                      };
+              properties: nestedSchemaBody(proper.properties ?? []),
+            },
+          } as Record<string, SwaggerPropertyObject>;
+        } else if (proper.format === "array") {
+          schemaBodyElement = {
+            [proper.key]: {
+              type: "array",
+              title: proper.key,
+              items: {
+                type: "object",
+                properties: nestedSchemaBody(proper.properties ?? []),
+              },
+            },
+          } as unknown as Record<string, SwaggerPropertyArray>;
+        } else {
+          schemaBodyElement = {
+            [proper.key]: {
+              type: proper.type,
+              example: proper.example,
+            } as SwaggerPropertyExample,
+          };
+        }
 
-                    default:
-                      return {
-                        [prop.key]: {
-                          type: prop.type,
-                          example: prop.example,
-                        },
-                      };
-                  }
-                })
-                .reduce((acc: any, response) => {
-                  return { ...acc, ...response };
-                }, {}),
+        return { ...acc, ...schemaBodyElement };
+      }, {});
+    };
+
+    properRequestBody = watchRequestBody.reduce((acc, proper) => {
+      let requestBodyProperty: Record<string, SwaggerInterface>;
+      requestBodyProperty = {
+        [proper.name]: {
+          type: "object",
+          properties: nestedSchemaBody(proper.properties),
+        },
+      };
+
+      return { ...acc, ...requestBodyProperty };
+    }, {});
+
+    // Responses
+    const responsesCocoon = {
+      resultResponse: watchResponses.reduce((acc, response) => {
+        let responseResult = {
+          [response.code]: {
+            description: response.description,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: `#/components/schemas/${
+                    response.code >= "400" ? response.name : watchBaseSchemaName
+                  }`,
+                },
+              },
+            },
+          },
+        };
+        return { ...acc, ...responseResult };
+      }, {}),
+      initialResponse: {
+        $ref: `#/components/schemas/${watchResponses[0]?.name}`,
+      },
+    };
+
+    // Schema Properties
+    let schemaProperties: Record<string, SwaggerInterface> = {},
+      schemaKeysProperty = {};
+    const schemaKeysetProperties: Record<string, any>[] = [];
+    let schemaErrorProperties: Record<string, any> = {};
+
+    const nestedSchemaProperty = (
+      schemas: ComponentSupport[] = [],
+    ): Record<string, any> =>
+      schemas.reduce<Record<string, any>>((acc, proper) => {
+        let schema: Record<string, any>;
+        const objectRef = {
+          [proper.key]: { $ref: `#/components/schemas/${proper.subName}` },
+        };
+
+        if (proper.format === "array") {
+          const arraySchema = {
+            [proper.key]: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: nestedSchemaProperty(proper.properties),
+              },
             },
           };
-        })
-        .reduce((acc, response) => {
-          return { ...acc, ...response };
-        }, {});
-
-      _schemaProperties = foundSchema
-        .flatMap((proper) => {
-          return proper.properties.map((prop) => {
-            switch (prop.format) {
-              case "array":
-                return {
-                  [prop.subName as never]: {
+          schemaKeysetProperties.push(
+            proper.subName
+              ? {
+                  [proper.subName]: {
                     type: "array",
                     items: {
                       type: "object",
-                      properties: (prop.properties ?? [])
-                        .map((subProp) => {
-                          return {
-                            [subProp.key]: {
-                              type: subProp.type,
-                              example: subProp.example,
-                            },
-                          };
-                        })
-                        .reduce((acc, response) => {
-                          return { ...acc, ...response };
-                        }, {}),
+                      properties: nestedSchemaProperty(proper.properties),
                     },
                   },
-                };
-              case "object":
-                return {
-                  [prop.subName as never]: {
+                }
+              : arraySchema,
+          );
+          schema = proper.subName ? objectRef : arraySchema;
+        } else if (proper.format === "object") {
+          const objectSchema = {
+            [proper.key]: {
+              type: "object",
+              properties: nestedSchemaProperty(proper.properties),
+            },
+          };
+          schemaKeysetProperties.push(
+            proper.subName
+              ? {
+                  [proper.subName]: {
                     type: "object",
-                    properties: (prop.properties ?? [])
-                      .map((subProp) => {
-                        return {
-                          [subProp.key]: {
-                            type: subProp.type,
-                            example: subProp.example,
-                          },
-                        };
-                      })
-                      .reduce((acc, response) => {
-                        return { ...acc, ...response };
-                      }, {}),
+                    properties: nestedSchemaProperty(proper.properties),
                   },
-                };
+                }
+              : objectSchema,
+          );
+          schema = proper.subName ? objectRef : objectSchema;
+        } else {
+          let autoFormatDateTime: SwaggerPropertyExample;
+          if (proper.type === "date") {
+            autoFormatDateTime = {
+              type: "string",
+              ...(proper.example ? { example: proper.example } : {}),
+              format: "date",
+            };
+          } else if (proper.type === "datetime") {
+            autoFormatDateTime = {
+              type: "string",
+              ...(proper.example ? { example: proper.example } : {}),
+              format: "date-time",
+            };
+          } else {
+            autoFormatDateTime = {
+              type: proper.type,
+              example: proper.example,
+            };
+          }
+          schema = {
+            [proper.key]: autoFormatDateTime,
+          };
+        }
 
-              default:
-                return {};
-            }
-          });
-        })
-        .filter(Boolean)
-        .reduce((acc: any, response) => {
-          return { ...acc, ...response };
-        }, {});
+        return { ...acc, ...schema };
+      }, {});
 
+    if (getValueSchema.length > 0) {
+      const foundSchema = getValueSchema.find((getValue) =>
+        watchResponses.some((response) => response.code === getValue.code),
+      );
+      if (!foundSchema) return;
+
+      schemaProperties = {
+        [watchResponses[0]?.name]: {
+          type: "object",
+          properties: nestedSchemaProperty(foundSchema.properties),
+        },
+      };
+      schemaKeysProperty = schemaKeysetProperties.reduce(
+        (acc, response) => ({ ...acc, ...response }),
+        {},
+      );
+
+      // error case
       const errorCase = watchResponses.filter((proper) => proper.code >= "400");
       if (errorCase) {
-        schemaErrorProperties = errorCase
-          .map((proper) => {
-            return {
-              [proper.name]: {
-                type: "object",
-                properties: {
-                  status: {
-                    type: "object",
-                    properties: {
-                      code: {
-                        type: "string",
-                        example: proper.codeResponse,
-                      },
-                      type: {
-                        type: "string",
-                        example: "info",
-                      },
-                      message: {
-                        type: "string",
-                        example: proper.message,
-                      },
-                    },
-                  },
+        schemaErrorProperties = errorCase.reduce((acc, proper) => {
+          const resultSchemaError = {
+            [proper.name]: {
+              type: "object",
+              properties: {
+                status: {
+                  $ref: `#/components/schemas/StatusResponseError${proper.name}`,
                 },
               },
-            };
-          })
-          .reduce((acc: any, response) => {
-            return { ...acc, ...response };
-          }, {});
+            },
+            ["StatusResponseError".concat(proper.name)]: {
+              type: "object",
+              properties: {
+                code: {
+                  type: "string",
+                  example: proper.codeResponse,
+                },
+                type: {
+                  type: "string",
+                  example: "error",
+                },
+                message: {
+                  type: "string",
+                  example: proper.message,
+                },
+              },
+            },
+          };
+          return { ...acc, ...resultSchemaError };
+        }, {});
       }
     }
 
     return {
       openapi: "3.0.0",
       info: {
-        title: "Swagger Support Spec",
+        title: watchTitle,
         description: "",
         version: "1.0.0",
       },
       tags: [
         {
-          name: watchApiName,
+          name: watchTagName,
           description: "",
         },
       ],
       paths: {
         [watchApiPath]: {
           [watchMethod]: {
-            tags: [watchApiName],
+            tags: [watchTagName],
             summary: "",
             parameters: parameters,
             responses: responsesCocoon.resultResponse,
@@ -312,20 +487,20 @@ const useSwaggerUI = () => {
       },
       components: {
         schemas: {
-          [watchApiName]: {
+          [watchBaseSchemaName]: {
             type: "object",
             properties: {
               status: {
-                $ref: "#/components/schemas/statusResponse",
+                $ref: "#/components/schemas/StatusResponse",
               },
               data: { ...responsesCocoon.initialResponse },
             },
           },
           ...schemaProperties,
+          ...schemaKeysProperty,
           ...properRequestBody,
-          ..._schemaProperties,
           ...schemaErrorProperties,
-          statusResponse: {
+          StatusResponse: {
             type: "object",
             properties: {
               code: {
@@ -346,24 +521,47 @@ const useSwaggerUI = () => {
       },
     };
   }, [
-    watchApiName,
+    watchTitle,
     watchMethod,
     watchApiPath,
+    watchTagName,
+    watchBaseSchemaName,
     watchParameters,
     watchResponses,
     getValueSchema,
     watchRequestBody,
   ]);
 
+  const onSetTextYaml = (yaml: string) => setStringJson(yaml);
+
+  // YAML generation and drawer open
+  const onGenerateYaml = () => {
+    const yamlDump = yaml.dump(generateOpenApiSpec);
+    onOpen();
+    setYamlDump(yamlDump);
+    setModeOfDrawer("generate");
+  };
+
+  const onImportYaml = () => {
+    onOpen();
+    setModeOfDrawer("import");
+  };
+
   return {
+    yamlDump,
+    stringJson,
+    isOpen,
     formProvider,
     parametersFieldArray,
     requestBodyFieldArray,
     responsesFieldArray,
     schemaFieldArray,
-    getValuesResponse,
-    getValueSchema,
     generateOpenApiSpec,
+    modeOfDrawer,
+    onGenerateYaml,
+    onImportYaml,
+    onOpenChange,
+    onSetTextYaml,
   };
 };
 
