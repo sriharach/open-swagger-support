@@ -43,7 +43,12 @@ export type SchemaSupport = {
 };
 
 export type OpenApiFormSupport = {
-  titleSwagger: string;
+  info: {
+    title: string
+    description: string
+    version: string
+    [key: string]: any
+  }
   tagName: string;
   apiPath: string;
   method: string;

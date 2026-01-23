@@ -2,7 +2,7 @@
 import { useFieldArray, useForm } from "react-hook-form";
 import yaml from "js-yaml";
 import { useDisclosure } from "@heroui/react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 // types
 import {
@@ -22,7 +22,6 @@ import {
   SwaggerRequestBodyProperty,
 } from "@/types/models/swagger-interface.model";
 import useSetSwagger from "./useSetSwagger";
-import { HTTP_STATUS_CODES } from "@/constant/httpNetworkStatusCode";
 
 const useSwaggerUI = () => {
   const [yamlDump, setYamlDump] = useState<string>("");
@@ -35,7 +34,10 @@ const useSwaggerUI = () => {
   const formProvider = useForm<UseFormOpenApi>({
     mode: "all",
     defaultValues: {
-      titleSwagger: "Swagger Support",
+      info: {
+        title: 'Swagger Support',
+        version: '1.0.0',
+      },
       tagName: "Swagger Generator",
       baseSchemaName: "MainPointApi",
       method: "get",
@@ -67,11 +69,11 @@ const useSwaggerUI = () => {
   // feature import convert input swagger
   useSetSwagger(formProvider, stringJson);
 
-  const { control, watch, setValue } = formProvider;
+  const { control, watch } = formProvider;
 
+  const watchInfo = watch('info')
   const watchApiPath = watch("apiPath");
   const watchMethod = watch("method");
-  const watchTitle = watch("titleSwagger");
   const watchTagName = watch("tagName");
   const watchBaseSchemaName = watch("baseSchemaName");
   const watchParameters = watch("parameters");
@@ -463,11 +465,7 @@ const useSwaggerUI = () => {
 
     return {
       openapi: "3.0.0",
-      info: {
-        title: watchTitle,
-        description: "",
-        version: "1.0.0",
-      },
+      info: watchInfo,
       tags: [
         {
           name: watchTagName,
@@ -521,7 +519,7 @@ const useSwaggerUI = () => {
       },
     };
   }, [
-    watchTitle,
+    watchInfo,
     watchMethod,
     watchApiPath,
     watchTagName,

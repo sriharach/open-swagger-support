@@ -14,7 +14,7 @@ const SwaggerConfigPath = ({ formProvider }: SwaggerConfigPathProps) => {
       <div className="grid grid-cols-2 gap-3">
         <Controller
           control={formProvider.control}
-          name="titleSwagger"
+          name='info.title'
           render={({ field }) => {
             return (
               <Input
