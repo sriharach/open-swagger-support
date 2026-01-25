@@ -99,7 +99,7 @@ const RequestBody = ({
                   control: formProvider.control,
                   name: `requestBody.${index}.properties`,
                 }}
-                internalFuction={{
+                internalFunction={{
                   appendField: {
                     format: "",
                     type: "string",

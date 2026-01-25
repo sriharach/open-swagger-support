@@ -16,7 +16,7 @@ const useNestedComponent = <
   >,
 ) => {
   // get all props
-  const { formFieldArray, internalFuction } = props ?? {};
+  const { formFieldArray, internalFunction } = props ?? {};
 
   //   hook form
   const fieldArray = useFieldArray({
@@ -27,10 +27,10 @@ const useNestedComponent = <
 
   const onClickAppendFieldArray = useCallback(() => {
     const { append } = fieldArray;
-    if (!internalFuction && typeof internalFuction === "undefined") return;
+    if (!internalFunction && typeof internalFunction === "undefined") return;
 
-    append(internalFuction.appendField);
-  }, [internalFuction]);
+    append(internalFunction.appendField);
+  }, [internalFunction]);
 
   const onClickRemoveFieldArray = (index: number) => {
     const { remove } = fieldArray;

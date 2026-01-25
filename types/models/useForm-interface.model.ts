@@ -31,7 +31,6 @@ export type ComponentSupport = {
   key: string;
   format: "array" | "object" | "";
   type: "string" | "number" | "boolean" | "date" | "datetime";
-  enum?: Array<string | number>;
   example?: any;
   properties?: Array<ComponentSupport>;
   required?: boolean;
@@ -43,7 +42,12 @@ export type SchemaSupport = {
 };
 
 export type OpenApiFormSupport = {
-  titleSwagger: string;
+  info: {
+    title: string
+    description: string
+    version: string
+    [key: string]: any
+  }
   tagName: string;
   apiPath: string;
   method: string;

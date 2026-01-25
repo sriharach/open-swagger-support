@@ -62,6 +62,7 @@ const Parameter = ({ parametersFieldArray, formProvider }: ParameterProps) => {
                     <div className="text-center">
                       <p className="text-sm font-medium">Required Field</p>
                       <Checkbox
+                        isSelected={field.value}
                         onValueChange={(value) => field.onChange(value)}
                       />
                     </div>

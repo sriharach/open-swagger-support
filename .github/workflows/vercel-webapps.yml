@@ -2,8 +2,13 @@ name: Auto CI/CD Vercel
 
 on:
   push:
-    branches: [main] # ทำงานเมื่อ push เข้า main
-  
+    branches:
+      - main
+    branches-ignore:
+      - feat/*
+    tags:
+      - '*'
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest

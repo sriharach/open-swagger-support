@@ -48,7 +48,7 @@ export interface NestedComponentFields<
     showSwapIcon?: boolean
     showSubName?: boolean
   } & NestedComponentLevel;
-  internalFuction?: {
+  internalFunction?: {
     appendField: FieldArray<FieldT, TFieldArrayName>;
   };
 }
@@ -60,5 +60,5 @@ export type UseNestedComponentFields<
   TTransformedValues = FieldT,
 > = Pick<
   NestedComponentFields<FieldT, TFieldArrayName, TKeyName, TTransformedValues>,
-  "formFieldArray" | "internalFuction"
+  "formFieldArray" | "internalFunction"
 >;

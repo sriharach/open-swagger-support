@@ -1,6 +1,6 @@
 // libs
 import { Button, Divider, Input, Select, SelectItem } from "@heroui/react";
-import { Controller } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 
 // components
 import PlusIcon from "@/components/icons/PlusIcon";
@@ -9,8 +9,11 @@ import TrashIcon from "@/components/icons/TrashIcon";
 // types
 import { ResponseProps } from "./type";
 import { HTTP_STATUS_CODES } from "@/constant/httpNetworkStatusCode";
+import { OpenApiFormSupport } from "@/types/models/useForm-interface.model";
 
 const Response = ({ formProvider, responsesFieldArray }: ResponseProps) => {
+  const formContext = useFormContext<OpenApiFormSupport>();
+
   return (
     <div id="response" className="flex flex-col space-y-3">
       <div className="flex flex-row gap-3 items-center">
@@ -45,9 +48,17 @@ const Response = ({ formProvider, responsesFieldArray }: ResponseProps) => {
                 return (
                   <div className="flex flex-row gap-3 items-center w-full">
                     <Select
-                      onSelectionChange={(value) =>
-                        field.onChange(value.currentKey)
-                      }
+                      onSelectionChange={(value) => {
+                        field.onChange(value.currentKey);
+                        const getMessage = HTTP_STATUS_CODES.find(
+                          (x) => String(x.code) === value.currentKey,
+                        );
+                        if (getMessage)
+                          formContext.setValue(
+                            `responses.${index}.description`,
+                            getMessage.message,
+                          );
+                      }}
                       selectedKeys={[field.value]}
                       label="Status code"
                       variant="underlined"
