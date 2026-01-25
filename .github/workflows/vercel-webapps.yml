@@ -7,7 +7,7 @@ on:
         - feat/*
         - main
       tags:
-        - M*
+        - '*'
 
 jobs:
   build-and-deploy:
