@@ -87,7 +87,7 @@ const Schema = ({ schemaFieldArray, formProvider }: SchemaProps) => {
                 keyTitle: getResponseValues[0]?.name,
                 showSubName: true
               }}
-              internalFuction={{
+              internalFunction={{
                 appendField: {
                   format: "",
                   type: "string",

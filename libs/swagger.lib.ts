@@ -1,10 +1,12 @@
 import {
   SwaggerParameterProperty,
   SwaggerParameterString,
+  SwaggerRequestBody,
 } from "@/types/models/swagger-interface.model";
 import {
   ComponentSupport,
   OpenApiFormSupport,
+  RequestBodySupport,
   SchemaSupport,
 } from "@/types/models/useForm-interface.model";
 
@@ -31,6 +33,20 @@ export const deepEqual = (a: any, b: any): boolean => {
   }
   return true;
 };
+
+/**
+ *
+ * The Robust Utility Function
+ * @returns boolean
+ */
+function isPlainObject(value: Record<string, any>) {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  // Check if the object was created by the Object constructor or has a null prototype
+  let proto = Object.getPrototypeOf(value);
+  return proto === null || proto === Object.prototype;
+}
 
 /**
  * Checks if the loaded object matches the minimal OpenAPI structure
@@ -86,6 +102,44 @@ export const nestedSchema = (
       format,
       isOpenChildren,
       type,
+      properties,
+    };
+  });
+};
+
+export const nestedBodyProperty = (
+  bodyProperty: Record<string, any>,
+): ComponentSupport[] => {
+  return Object.entries<Record<string, any>>(
+    bodyProperty,
+  ).map<ComponentSupport>(([objKey, value]) => {
+    let format: "array" | "object" | "" = "";
+    let properties: ComponentSupport[] = [];
+    let type: ComponentSupport["type"] = "string";
+    let example: any = "";
+
+    if (isPlainObject(value)) {
+      format = "object";
+      properties = nestedBodyProperty(value);
+    }
+
+    if (Array.isArray(value) && value.length > 0) {
+      format = "array";
+      properties = value.map((_val) => {
+        return nestedBodyProperty(_val)
+      })[0]
+    }
+
+    if (typeof objKey === "string" && typeof value === "string") {
+      example = value;
+    }
+
+    return {
+      key: objKey,
+      format,
+      type,
+      isOpenChildren: true,
+      example,
       properties,
     };
   });
@@ -195,6 +249,19 @@ export const convertOpenApiToTemplate = (
     },
   );
 
+  const bodyContent = pathObj?.requestBody?.content?.["application/json"];
+
+  const requestBody = Object.entries<{
+    summary: string;
+    value: any;
+  }>(bodyContent.examples).map<RequestBodySupport>(([key, value]) => {
+    return {
+      name: key,
+      properties: nestedBodyProperty(value.value),
+    };
+  });
+  console.log("requestBody :>> ", requestBody);
+
   return {
     info: openApi.info,
     tagName,
@@ -204,6 +271,6 @@ export const convertOpenApiToTemplate = (
     schema,
     apiPath,
     parameters: (parameters as never) || [],
-    requestBody: pathObj.requestBody ? [pathObj.requestBody] : [],
+    requestBody,
   };
 };

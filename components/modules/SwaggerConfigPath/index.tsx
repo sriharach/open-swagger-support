@@ -9,7 +9,7 @@ import { SwaggerConfigPathProps } from "./type";
 const SwaggerConfigPath = ({ formProvider }: SwaggerConfigPathProps) => {
   return (
     <div id="api-path" className="flex flex-col space-y-3">
-      <h2 className="font-bold text-2xl">Config title</h2>
+      <h2 className="font-bold text-2xl">Configs title</h2>
       <Divider className="bg-green-1" />
       <div className="grid grid-cols-2 gap-3">
         <Controller

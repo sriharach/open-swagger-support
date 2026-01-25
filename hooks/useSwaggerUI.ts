@@ -35,8 +35,8 @@ const useSwaggerUI = () => {
     mode: "all",
     defaultValues: {
       info: {
-        title: 'Swagger Support',
-        version: '1.0.0',
+        title: "Swagger Support",
+        version: "1.0.0",
       },
       tagName: "Swagger Generator",
       baseSchemaName: "MainPointApi",
@@ -71,7 +71,7 @@ const useSwaggerUI = () => {
 
   const { control, watch } = formProvider;
 
-  const watchInfo = watch('info')
+  const watchInfo = watch("info");
   const watchApiPath = watch("apiPath");
   const watchMethod = watch("method");
   const watchTagName = watch("tagName");
@@ -163,7 +163,7 @@ const useSwaggerUI = () => {
     ): Record<string, any> =>
       _requestBodyElement.reduce((acc, proper) => {
         let requestBodyProperty: Record<string, any>;
-
+        
         if (proper.format === "array") {
           // If array items have properties, recursively process them
           const resultProper = (proper.properties ?? []).reduce(
@@ -206,7 +206,7 @@ const useSwaggerUI = () => {
         return { ...acc, ...requestBodyProperty };
       }, {});
 
-    if (watchRequestBody.length > 1) {
+    if (watchRequestBody.length > 0) {
       requestBody = {
         requestBody: {
           description: "",
@@ -219,7 +219,7 @@ const useSwaggerUI = () => {
                     $ref: `#/components/schemas/${requestBodyElement.name}`,
                   };
                 }),
-                title: watchRequestBody[0]?.name ?? "",
+                title: "RequestBody",
               },
               examples: watchRequestBody.reduce((acc, response) => {
                 let requestBodyElement = {
@@ -230,20 +230,6 @@ const useSwaggerUI = () => {
                 };
                 return { ...acc, ...requestBodyElement };
               }, {}),
-            },
-          },
-        },
-      };
-    } else if (watchRequestBody[0]) {
-      requestBody = {
-        requestBody: {
-          description: "",
-          required: watchRequestBody.some((reqBody) => reqBody.required),
-          content: {
-            "application/json": {
-              schema: {
-                $ref: `#/components/schemas/${watchRequestBody[0]?.name}`,
-              },
             },
           },
         },

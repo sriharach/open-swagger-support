@@ -31,7 +31,6 @@ export type ComponentSupport = {
   key: string;
   format: "array" | "object" | "";
   type: "string" | "number" | "boolean" | "date" | "datetime";
-  enum?: Array<string | number>;
   example?: any;
   properties?: Array<ComponentSupport>;
   required?: boolean;

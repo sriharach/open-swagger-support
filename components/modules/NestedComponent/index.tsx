@@ -1,6 +1,12 @@
 // libs
 import { Controller, FieldArrayPath } from "react-hook-form";
-import { Button, Input, Select, SelectItem } from "@heroui/react";
+import {
+  Button,
+  Checkbox,
+  Input,
+  Select,
+  SelectItem,
+} from "@heroui/react";
 import { memo } from "react";
 import clsx from "clsx";
 
@@ -25,7 +31,7 @@ const NestedComponent = <
 >({
   formFieldArray,
   fieldProperties,
-  internalFuction,
+  internalFunction,
 }: NestedComponentFields<
   FieldT,
   TFieldArrayName,
@@ -38,7 +44,7 @@ const NestedComponent = <
     keyTitle,
     title = "Hello Title",
     showSwapIcon,
-    showSubName
+    showSubName,
   } = fieldProperties ?? {};
 
   // hooks
@@ -50,7 +56,7 @@ const NestedComponent = <
     onClickMoveUpFieldArray,
     onClickMoveDownFieldArray,
   } = useNestedComponent<FieldT, TFieldArrayName, TKeyName, TTransformedValues>(
-    { formFieldArray, internalFuction },
+    { formFieldArray, internalFunction },
   );
 
   return (
@@ -82,7 +88,7 @@ const NestedComponent = <
             key={property.id}
             control={formFieldArray.control}
             name={`${codexName}.format` as never}
-            render={({ field }) => {
+            render={({ field: fieldFormat }) => {
               // const currentFormatTypes =
               //   field.value === "array"
               //     ? [...formatSchemasType, ...formatSchemaValue]
@@ -92,14 +98,15 @@ const NestedComponent = <
                 <div
                   className={clsx("flex flex-col gap-1.5 ", {
                     "relative after:w-full after:h-px after:border-b-2 after:border-dotted after:border-green-1 after:my-2":
-                      propertyIndex < fields.length - 1 && field.value !== "",
+                      propertyIndex < fields.length - 1 &&
+                      fieldFormat.value !== "",
                   })}
                   style={{ marginLeft: level * 14 }}
                 >
                   <div className="flex flex-row gap-1.5 items-center">
                     <div className="flex flex-row gap-0.5 items-center">
                       {/* icon extend children variable */}
-                      {field.value != "" && (
+                      {fieldFormat.value != "" && (
                         <Controller
                           control={formFieldArray.control}
                           name={`${codexName}.isOpenChildren` as never}
@@ -159,13 +166,13 @@ const NestedComponent = <
 
                     <Select
                       onSelectionChange={(value) => {
-                        field.onChange(value.currentKey);
+                        fieldFormat.onChange(value.currentKey);
                         formContext.resetField(`${codexName}.key`);
                         formContext.resetField(`${codexName}.type`);
                         formContext.resetField(`${codexName}.example`);
                         formContext.resetField(`${codexName}.properties`);
                       }}
-                      selectedKeys={[field.value]}
+                      selectedKeys={[fieldFormat.value]}
                       label="Format"
                       className="max-w-32"
                       variant="underlined"
@@ -191,7 +198,7 @@ const NestedComponent = <
                       }}
                     />
 
-                    {showSubName && field.value != "" && (
+                    {showSubName && fieldFormat.value != "" && (
                       <Controller
                         control={formFieldArray.control}
                         name={`${codexName}.subName` as never}
@@ -209,7 +216,7 @@ const NestedComponent = <
                       />
                     )}
 
-                    {field.value === "" && (
+                    {fieldFormat.value === "" && (
                       <Controller
                         control={formFieldArray.control}
                         name={`${codexName}.type` as never}
@@ -233,6 +240,7 @@ const NestedComponent = <
                                   );
                                 })}
                               </Select>
+
                               <Controller
                                 control={formFieldArray.control}
                                 name={`${codexName}.example` as never}
@@ -282,7 +290,7 @@ const NestedComponent = <
                       />
                     )}
                   </div>
-                  {field.value !== "" && getOpenChildren && (
+                  {fieldFormat.value !== "" && getOpenChildren && (
                     <NestedComponent
                       fieldProperties={{
                         ...fieldProperties,
@@ -295,7 +303,7 @@ const NestedComponent = <
                         control: formFieldArray.control,
                         name: `${codexName}.properties` as never,
                       }}
-                      internalFuction={internalFuction}
+                      internalFunction={internalFunction}
                     />
                   )}
                 </div>
@@ -314,5 +322,5 @@ export default memo(
   (prevProps, nextProps) =>
     prevProps.fieldProperties === nextProps.fieldProperties &&
     prevProps.formFieldArray === nextProps.formFieldArray &&
-    prevProps.internalFuction === nextProps.internalFuction,
+    prevProps.internalFunction === nextProps.internalFunction,
 ) as typeof NestedComponent;
